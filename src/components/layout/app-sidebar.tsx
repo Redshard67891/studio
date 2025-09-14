@@ -18,6 +18,7 @@ import {
   ClipboardCheck,
   Settings,
   LayoutDashboard,
+  Archive,
 } from "lucide-react";
 import { useSidebar } from "../ui/sidebar";
 
@@ -82,6 +83,18 @@ const AppSidebar = () => {
               <Link href="/attendance">
                 <ClipboardCheck />
                 <span>Attendance</span>
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              asChild
+              isActive={pathname.startsWith("/records")}
+              tooltip={{ children: "Records" }}
+            >
+              <Link href="/records">
+                <Archive />
+                <span>Records</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
