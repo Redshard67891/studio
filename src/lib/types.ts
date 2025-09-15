@@ -2,8 +2,8 @@ export type Student = {
   id: string;
   studentId: string;
   name: string;
-  email: string;
-  major: string;
+  email?: string;
+  major?: string;
 };
 
 export type Course = {

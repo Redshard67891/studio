@@ -13,7 +13,7 @@ import {
 import { Upload } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { importStudentsFromCsvAction } from "./csv-import-actions";
+import { importStudentsWithAiAction } from "./csv-import-actions";
 import { useToast } from "@/hooks/use-toast";
 
 export function CsvImportDialog() {
@@ -42,18 +42,20 @@ export function CsvImportDialog() {
       const reader = new FileReader();
       reader.onload = async (e) => {
         const csvData = e.target?.result as string;
-        const result = await importStudentsFromCsvAction({ csvData });
+        const result = await importStudentsWithAiAction({ csvData });
 
         if (result.failureReason) {
             toast({
                 variant: "destructive",
                 title: "Import Failed",
                 description: result.failureReason,
+                duration: 5000,
             });
         } else {
             toast({
                 title: "Import Complete",
                 description: result.importSummary,
+                duration: 5000,
             });
             setOpen(false);
         }
@@ -73,8 +75,7 @@ export function CsvImportDialog() {
         <DialogHeader>
           <DialogTitle>Import Students via CSV</DialogTitle>
           <DialogDescription>
-            Upload a CSV file with student data. The file should have columns
-            for name, studentId, email, and major.
+            Upload a CSV file with student data. The AI will attempt to parse it, even if headers are messy. Required fields are Name and a 10-digit Registration Number.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
@@ -87,7 +88,7 @@ export function CsvImportDialog() {
           <Button onClick={() => setOpen(false)} variant="outline">
             Cancel
           </Button>
-          <Button onClick={handleImport} disabled={isPending}>
+          <Button onClick={handleImport} disabled={isPending || !file}>
             {isPending ? "Importing..." : "Import"}
           </Button>
         </DialogFooter>
