@@ -1,6 +1,6 @@
 'use server';
 
-import { importStudentsWithAiAction } from './csv-import-ai-action';
+import { importStudentsFromCsv } from '@/ai/flows/import-students-from-csv';
 import { importStudentsWithTraditionalAction } from './csv-import-traditional-action';
 import type { ImportStudentsInput, ImportStudentsOutput } from '@/lib/types';
 import { revalidatePath } from 'next/cache';
@@ -25,7 +25,7 @@ export async function importStudentsCsvAction(
 
     try {
       // --- Attempt to use the AI-based import first ---
-      result = await importStudentsWithAiAction(input);
+      result = await importStudentsFromCsv(input);
     } catch (error) {
       console.warn(
         'CSV Import: AI import failed, attempting traditional fallback.',
