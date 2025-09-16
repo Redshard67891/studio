@@ -13,8 +13,7 @@ import {
 import { Upload } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { importStudentsWithAiAction } from './csv-import-actions';
-import { importStudentsWithTraditionalAction } from './csv-import-traditional-action';
+import { importStudentsCsvAction } from './csv-import-actions';
 import { useToast } from '@/hooks/use-toast';
 
 export function CsvImportDialog() {
@@ -43,50 +42,35 @@ export function CsvImportDialog() {
       const reader = new FileReader();
       reader.onload = async (e) => {
         const csvData = e.target?.result as string;
+        
+        toast({
+          title: 'Importing CSV...',
+          description: 'Processing file. This may take a moment.',
+        });
+
         try {
-          // --- AI First Approach ---
+          const result = await importStudentsCsvAction({ csvData });
+          
           toast({
-            title: 'Processing with AI...',
-            description: 'Attempting to intelligently parse your CSV file.',
-          });
-          const result = await importStudentsWithAiAction({ csvData });
-          toast({
-            title: 'Import Complete (AI)',
+            title: 'Import Complete',
             description: result.importSummary,
-            duration: 5000,
+            duration: 8000,
           });
+          
           setOpen(false);
-        } catch (aiError) {
-          // --- Fallback to Traditional Method ---
-          console.warn('AI import failed, falling back to traditional import:', aiError);
+
+        } catch (error) {
+          console.error("CSV Import Dialog Error:", error);
+          const errorMessage =
+            error instanceof Error
+              ? error.message
+              : 'An unknown error occurred during import.';
           toast({
-            title: 'AI Failed, Using Fallback',
-            description:
-              'Falling back to the standard CSV import method.',
-            variant: 'default',
+            variant: 'destructive',
+            title: 'Import Failed',
+            description: errorMessage,
+            duration: 8000,
           });
-          try {
-            const result = await importStudentsWithTraditionalAction({
-              csvData,
-            });
-            toast({
-              title: 'Import Complete (Fallback)',
-              description: result.importSummary,
-              duration: 5000,
-            });
-            setOpen(false);
-          } catch (traditionalError) {
-            const errorMessage =
-              traditionalError instanceof Error
-                ? traditionalError.message
-                : 'An unknown error occurred during fallback import.';
-            toast({
-              variant: 'destructive',
-              title: 'Import Failed',
-              description: errorMessage,
-              duration: 5000,
-            });
-          }
         }
       };
       reader.readAsText(file);
@@ -112,8 +96,7 @@ export function CsvImportDialog() {
         <DialogHeader>
           <DialogTitle>Import Students via CSV</DialogTitle>
           <DialogDescription>
-            Upload a CSV file. The AI will try to parse it. If it fails, a
-            standard parser will be used as a fallback.
+            Upload a CSV file. The system will attempt to intelligently parse it. If AI processing fails, a standard parser will be used as a fallback.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">

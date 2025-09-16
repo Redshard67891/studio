@@ -19,8 +19,10 @@ export async function importStudentsWithTraditionalAction(
   }
 
   // 1. Parse the CSV string
-  const parseResult = Papa.parse<string[]>(csvData.trim(), {
+  const parseResult = Papa.parse(csvData.trim(), {
+    header: true,
     skipEmptyLines: true,
+    transformHeader: (header) => header.toLowerCase().trim().replace(/\s+/g, ''),
   });
 
   if (parseResult.errors.length > 0) {
@@ -29,68 +31,60 @@ export async function importStudentsWithTraditionalAction(
     );
   }
 
-  const rows = parseResult.data;
+  const rows = parseResult.data as Record<string, string>[];
   if (rows.length === 0) {
-    throw new Error('The CSV file does not contain any data rows.');
+    return {
+        importSummary: 'Import complete. No data rows found in the CSV file.',
+        skippedRecordsDetails: [],
+    };
   }
 
-  // 2. Dynamically map columns by inspecting the first row
-  const header = rows[0].map((h) => h.toLowerCase().trim());
-  let nameIndex = header.findIndex((h) => h.includes('name'));
-  let regIndex = header.findIndex(
-    (h) => h.includes('reg') || h.includes('id') || h.includes('student')
-  );
-  let emailIndex = header.findIndex((h) => h.includes('email'));
-  let majorIndex = header.findIndex((h) => h.includes('major'));
-
-
-  const hasHeader = nameIndex !== -1 && regIndex !== -1;
-  const dataRows = hasHeader ? rows.slice(1) : rows;
-
-  // If no header, assume default order
-  if (!hasHeader) {
-      nameIndex = 0;
-      regIndex = 1;
-      emailIndex = 2;
-      majorIndex = 3;
+  const header = parseResult.meta.fields;
+  if (!header) {
+    throw new Error('Could not determine headers from CSV file.');
   }
 
-  // 3 & 4: Iterate, validate, and collect results
+  const nameKey = header.find(h => h.includes('name'));
+  const regKey = header.find(h => h.includes('reg') || h.includes('id') || h.includes('studentid'));
+
+  if (!nameKey || !regKey) {
+      throw new Error("CSV headers must contain 'name' and 'studentId' (or 'registration number'/'reg no').");
+  }
+
+
   const studentsToAdd: { name: string; studentId: string; email?: string; major?: string; }[] = [];
+  const skippedRecordsDetails: { row: any; reason: string; originalIndex: number }[] = [];
   let successCount = 0;
-  let skippedCount = 0;
 
   const seenRegNumbers = new Set<string>();
 
-  for (const row of dataRows) {
-    const name = row[nameIndex]?.trim();
-    let studentId = row[regIndex]?.trim();
-    const email = row[emailIndex]?.trim() || undefined;
-    const major = row[majorIndex]?.trim() || undefined;
+  for (const [index, row] of rows.entries()) {
+    const originalIndex = index + 2;
+    const name = row[nameKey]?.trim();
+    let studentId = row[regKey]?.trim();
+
+    const emailKey = header.find(h => h.includes('email'));
+    const majorKey = header.find(h => h.includes('major'));
+    const email = emailKey ? row[emailKey]?.trim() : undefined;
+    const major = majorKey ? row[majorKey]?.trim() : undefined;
+
+    if (!name || !studentId) {
+      skippedRecordsDetails.push({ row, reason: 'Missing name or registration number.', originalIndex });
+      continue;
+    }
     
-    // Validate essential data
-    if (!name) {
-      skippedCount++;
-      continue;
-    }
+    studentId = studentId.replace(/\D/g, '');
 
-    // Sanitize and validate registration number
-    if (studentId) {
-      studentId = studentId.replace(/\D/g, ''); // Remove all non-digits
-    }
-
-    if (studentId?.length !== 10) {
-      skippedCount++;
-      continue;
-    }
-
-    // Handle duplicates
-    if (seenRegNumbers.has(studentId)) {
-        skippedCount++;
+    if (studentId.length !== 10) {
+        skippedRecordsDetails.push({ row, reason: `Registration number '${studentId}' is not 10 digits.`, originalIndex });
         continue;
     }
 
-    // If all checks pass, add the student
+    if (seenRegNumbers.has(studentId)) {
+        skippedRecordsDetails.push({ row, reason: `Duplicate registration number: ${studentId}.`, originalIndex });
+        continue;
+    }
+
     studentsToAdd.push({
       name,
       studentId,
@@ -100,22 +94,42 @@ export async function importStudentsWithTraditionalAction(
     seenRegNumbers.add(studentId);
     successCount++;
   }
-
+  
+  let uploadErrorsDetails: { student: any, error: string }[] = [];
   if (studentsToAdd.length > 0) {
-      try {
-        const addPromises = studentsToAdd.map(student => addStudent(student));
-        await Promise.all(addPromises);
-      } catch (error) {
-        throw new Error("An error occurred while saving students to the database.");
+      let uploadedCount = 0;
+      for (const student of studentsToAdd) {
+          try {
+              await addStudent(student);
+              uploadedCount++;
+          } catch (error) {
+              console.error("CSV Import Error: Error adding document to Firestore.", { student, error });
+              uploadErrorsDetails.push({ student, error: error instanceof Error ? error.message : String(error) });
+          }
       }
   }
-  
-  revalidatePath("/students");
-  
-  // Final summary
-  const importSummary = `Import complete. Successfully processed ${successCount} records. Skipped ${skippedCount} invalid or duplicate records.`;
 
+  const uploadFailedCount = uploadErrorsDetails.length;
+  const validationSkippedCount = skippedRecordsDetails.length;
+  const successfullyImportedAndUploaded = successCount - uploadFailedCount;
+
+
+  const importSummary = `Processing complete. ${successfullyImportedAndUploaded} records uploaded. ${validationSkippedCount} records skipped (validation errors). ${uploadFailedCount} records failed to upload.`;
+  
+  if (skippedRecordsDetails.length > 0) {
+    console.warn("CSV Import Skipped Records (Traditional):", skippedRecordsDetails);
+  }
+  if (uploadErrorsDetails.length > 0) {
+    console.error("CSV Import Firestore Upload Errors (Traditional):", uploadErrorsDetails);
+  }
+
+  if (studentsToAdd.length > 0) {
+    revalidatePath("/students");
+  }
+  
   return {
     importSummary,
+    skippedRecordsDetails,
+    uploadErrorsDetails,
   };
 }
