@@ -20,3 +20,14 @@ export type AttendanceRecord = {
   date: string; // YYYY-MM-DD
   status: "present" | "absent";
 };
+
+// Types for CSV Import Flow
+export type ImportStudentsInput = {
+  csvData: string;
+};
+
+export type ImportStudentsOutput = {
+  validatedStudents: Omit<Student, 'id'>[];
+  importSummary: string;
+  failureReason?: string;
+};

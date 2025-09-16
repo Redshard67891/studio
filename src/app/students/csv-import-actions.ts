@@ -1,9 +1,9 @@
 "use server";
 
-import { z } from "zod";
 import { addStudent } from "@/lib/data";
 import { revalidatePath } from "next/cache";
-import { importStudentsFromCsv, type ImportStudentsInput, type ImportStudentsOutput } from "@/ai/flows/import-students-from-csv";
+import { importStudentsFromCsv } from "@/ai/flows/import-students-from-csv";
+import type { ImportStudentsInput, ImportStudentsOutput } from "@/lib/types";
 
 
 /**

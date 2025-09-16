@@ -2,14 +2,15 @@
 /**
  * @fileOverview A flow for importing student data from a CSV file using an LLM.
  *
- * - importStudentsFromCsv - A function that handles the student import process.
- * - ImportStudentsInput - The input type for the importStudentsFromCsv function.
- * - ImportStudentsOutput - The return type for the importStudentsFromCsv function.
+ * This file defines the AI-powered logic for parsing and validating student data from a raw CSV string.
+ * It exports a single async function, `importStudentsFromCsv`, which is a valid Next.js Server Action.
  */
 
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
+import type { ImportStudentsInput, ImportStudentsOutput } from '@/lib/types';
 
+// Internal schema definitions - not exported
 const StudentDataSchema = z.object({
   name: z.string().describe('The full name of the student.'),
   studentId: z
@@ -20,12 +21,11 @@ const StudentDataSchema = z.object({
   major: z.string().optional().describe('The major or field of study of the student.'),
 });
 
-export const ImportStudentsInputSchema = z.object({
+const ImportStudentsInputSchema = z.object({
   csvData: z.string().describe('The raw CSV data as a string.'),
 });
-export type ImportStudentsInput = z.infer<typeof ImportStudentsInputSchema>;
 
-export const ImportStudentsOutputSchema = z.object({
+const ImportStudentsOutputSchema = z.object({
   validatedStudents: z
     .array(StudentDataSchema)
     .describe(
@@ -41,16 +41,8 @@ export const ImportStudentsOutputSchema = z.object({
     .optional()
     .describe('A specific reason why the CSV could not be processed at all.'),
 });
-export type ImportStudentsOutput = z.infer<typeof ImportStudentsOutputSchema>;
 
-
-export async function importStudentsFromCsv(
-  input: ImportStudentsInput
-): Promise<ImportStudentsOutput> {
-  return importStudentsFromCsvFlow(input);
-}
-
-
+// Internal prompt definition
 const importStudentsFromCsvPrompt = ai.definePrompt({
   name: 'importStudentsFromCsvPrompt',
   input: { schema: ImportStudentsInputSchema },
@@ -70,6 +62,7 @@ const importStudentsFromCsvPrompt = ai.definePrompt({
   `,
 });
 
+// Internal flow definition
 const importStudentsFromCsvFlow = ai.defineFlow(
   {
     name: 'importStudentsFromCsvFlow',
@@ -89,3 +82,14 @@ const importStudentsFromCsvFlow = ai.defineFlow(
     return output!;
   }
 );
+
+
+/**
+ * The sole exported async function that acts as a Server Action.
+ * It takes the CSV data, executes the Genkit flow, and returns the result.
+ */
+export async function importStudentsFromCsv(
+  input: ImportStudentsInput
+): Promise<ImportStudentsOutput> {
+  return importStudentsFromCsvFlow(input);
+}
