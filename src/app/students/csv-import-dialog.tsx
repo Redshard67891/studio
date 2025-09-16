@@ -1,6 +1,6 @@
-"use client";
-import { useState, useTransition } from "react";
-import { Button } from "@/components/ui/button";
+'use client';
+import { useState, useTransition } from 'react';
+import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
@@ -9,12 +9,13 @@ import {
   DialogDescription,
   DialogFooter,
   DialogTrigger,
-} from "@/components/ui/dialog";
-import { Upload } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { importStudentsWithAiAction } from "./csv-import-actions";
-import { useToast } from "@/hooks/use-toast";
+} from '@/components/ui/dialog';
+import { Upload } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { importStudentsWithAiAction } from './csv-import-actions';
+import { importStudentsWithTraditionalAction } from './csv-import-traditional-action';
+import { useToast } from '@/hooks/use-toast';
 
 export function CsvImportDialog() {
   const [open, setOpen] = useState(false);
@@ -31,9 +32,9 @@ export function CsvImportDialog() {
   const handleImport = () => {
     if (!file) {
       toast({
-        variant: "destructive",
-        title: "No file selected",
-        description: "Please select a CSV file to import.",
+        variant: 'destructive',
+        title: 'No file selected',
+        description: 'Please select a CSV file to import.',
       });
       return;
     }
@@ -42,22 +43,50 @@ export function CsvImportDialog() {
       const reader = new FileReader();
       reader.onload = async (e) => {
         const csvData = e.target?.result as string;
-        const result = await importStudentsWithAiAction({ csvData });
-
-        if (result.failureReason) {
-            toast({
-                variant: "destructive",
-                title: "Import Failed",
-                description: result.failureReason,
-                duration: 5000,
+        try {
+          // --- AI First Approach ---
+          toast({
+            title: 'Processing with AI...',
+            description: 'Attempting to intelligently parse your CSV file.',
+          });
+          const result = await importStudentsWithAiAction({ csvData });
+          toast({
+            title: 'Import Complete (AI)',
+            description: result.importSummary,
+            duration: 5000,
+          });
+          setOpen(false);
+        } catch (aiError) {
+          // --- Fallback to Traditional Method ---
+          console.warn('AI import failed, falling back to traditional import:', aiError);
+          toast({
+            title: 'AI Failed, Using Fallback',
+            description:
+              'Falling back to the standard CSV import method.',
+            variant: 'default',
+          });
+          try {
+            const result = await importStudentsWithTraditionalAction({
+              csvData,
             });
-        } else {
             toast({
-                title: "Import Complete",
-                description: result.importSummary,
-                duration: 5000,
+              title: 'Import Complete (Fallback)',
+              description: result.importSummary,
+              duration: 5000,
             });
             setOpen(false);
+          } catch (traditionalError) {
+            const errorMessage =
+              traditionalError instanceof Error
+                ? traditionalError.message
+                : 'An unknown error occurred during fallback import.';
+            toast({
+              variant: 'destructive',
+              title: 'Import Failed',
+              description: errorMessage,
+              duration: 5000,
+            });
+          }
         }
       };
       reader.readAsText(file);
@@ -65,7 +94,15 @@ export function CsvImportDialog() {
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog
+      open={open}
+      onOpenChange={(isOpen) => {
+        setOpen(isOpen);
+        if (!isOpen) {
+          setFile(null);
+        }
+      }}
+    >
       <DialogTrigger asChild>
         <Button variant="outline">
           <Upload className="mr-2 h-4 w-4" /> Import CSV
@@ -75,13 +112,19 @@ export function CsvImportDialog() {
         <DialogHeader>
           <DialogTitle>Import Students via CSV</DialogTitle>
           <DialogDescription>
-            Upload a CSV file with student data. The AI will attempt to parse it, even if headers are messy. Required fields are Name and a 10-digit Registration Number.
+            Upload a CSV file. The AI will try to parse it. If it fails, a
+            standard parser will be used as a fallback.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
           <div className="grid w-full max-w-sm items-center gap-1.5">
             <Label htmlFor="csv-file">CSV File</Label>
-            <Input id="csv-file" type="file" accept=".csv" onChange={handleFileChange} />
+            <Input
+              id="csv-file"
+              type="file"
+              accept=".csv"
+              onChange={handleFileChange}
+            />
           </div>
         </div>
         <DialogFooter>
@@ -89,7 +132,7 @@ export function CsvImportDialog() {
             Cancel
           </Button>
           <Button onClick={handleImport} disabled={isPending || !file}>
-            {isPending ? "Importing..." : "Import"}
+            {isPending ? 'Importing...' : 'Import'}
           </Button>
         </DialogFooter>
       </DialogContent>
