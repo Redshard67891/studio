@@ -1,3 +1,4 @@
+
 'use server';
 
 import Papa from 'papaparse';
@@ -26,6 +27,7 @@ export async function importStudentsWithTraditionalAction(
   });
 
   if (parseResult.errors.length > 0) {
+    console.error("CSV Import Error (Traditional Parsing):", parseResult.errors);
     throw new Error(
       `The CSV file is malformed. Error: ${parseResult.errors[0].message}`
     );
@@ -34,8 +36,9 @@ export async function importStudentsWithTraditionalAction(
   const rows = parseResult.data as Record<string, string>[];
   if (rows.length === 0) {
     return {
+        validatedStudents: [],
         importSummary: 'Import complete. No data rows found in the CSV file.',
-        skippedRecordsDetails: [],
+        failureReason: 'No data rows found.',
     };
   }
 
@@ -52,14 +55,13 @@ export async function importStudentsWithTraditionalAction(
   }
 
 
-  const studentsToAdd: { name: string; studentId: string; email?: string; major?: string; }[] = [];
+  const validatedStudents: { name: string; studentId: string; email?: string; major?: string; }[] = [];
   const skippedRecordsDetails: { row: any; reason: string; originalIndex: number }[] = [];
-  let successCount = 0;
-
+  
   const seenRegNumbers = new Set<string>();
 
   for (const [index, row] of rows.entries()) {
-    const originalIndex = index + 2;
+    const originalIndex = index + 2; // +1 for 0-index, +1 for header
     const name = row[nameKey]?.trim();
     let studentId = row[regKey]?.trim();
 
@@ -76,7 +78,7 @@ export async function importStudentsWithTraditionalAction(
     studentId = studentId.replace(/\D/g, '');
 
     if (studentId.length !== 10) {
-        skippedRecordsDetails.push({ row, reason: `Registration number '${studentId}' is not 10 digits.`, originalIndex });
+        skippedRecordsDetails.push({ row, reason: `Registration number '${row[regKey]}' is not 10 digits.`, originalIndex });
         continue;
     }
 
@@ -85,51 +87,26 @@ export async function importStudentsWithTraditionalAction(
         continue;
     }
 
-    studentsToAdd.push({
+    validatedStudents.push({
       name,
       studentId,
-      email,
-      major
+      email: email || '',
+      major: major || ''
     });
     seenRegNumbers.add(studentId);
-    successCount++;
   }
   
-  let uploadErrorsDetails: { student: any, error: string }[] = [];
-  if (studentsToAdd.length > 0) {
-      let uploadedCount = 0;
-      for (const student of studentsToAdd) {
-          try {
-              await addStudent(student);
-              uploadedCount++;
-          } catch (error) {
-              console.error("CSV Import Error: Error adding document to Firestore.", { student, error });
-              uploadErrorsDetails.push({ student, error: error instanceof Error ? error.message : String(error) });
-          }
-      }
-  }
-
-  const uploadFailedCount = uploadErrorsDetails.length;
   const validationSkippedCount = skippedRecordsDetails.length;
-  const successfullyImportedAndUploaded = successCount - uploadFailedCount;
 
-
-  const importSummary = `Processing complete. ${successfullyImportedAndUploaded} records uploaded. ${validationSkippedCount} records skipped (validation errors). ${uploadFailedCount} records failed to upload.`;
+  const importSummary = `Processing complete. Found ${validatedStudents.length} valid records. Skipped ${validationSkippedCount} records.`;
   
   if (skippedRecordsDetails.length > 0) {
     console.warn("CSV Import Skipped Records (Traditional):", skippedRecordsDetails);
   }
-  if (uploadErrorsDetails.length > 0) {
-    console.error("CSV Import Firestore Upload Errors (Traditional):", uploadErrorsDetails);
-  }
-
-  if (studentsToAdd.length > 0) {
-    revalidatePath("/students");
-  }
   
   return {
+    validatedStudents,
     importSummary,
-    skippedRecordsDetails,
-    uploadErrorsDetails,
+    failureReason: undefined,
   };
 }
