@@ -1,6 +1,6 @@
 'use server';
 
-import { importStudentsFromCsv } from '@/ai/flows/import-students-from-csv';
+import { importStudentsWithAiAction } from './csv-import-ai-action';
 import { importStudentsWithTraditionalAction } from './csv-import-traditional-action';
 import type { ImportStudentsInput, ImportStudentsOutput } from '@/lib/types';
 import { revalidatePath } from 'next/cache';
@@ -19,90 +19,85 @@ export async function importStudentsCsvAction(
     uploadErrorsDetails?: UploadErrorDetail[];
   }
 > {
-  let result: ImportStudentsOutput;
-  let usedMethod: 'AI' | 'Traditional' = 'AI';
-
   try {
-    // --- Attempt to use the AI-based import first ---
-    result = await importStudentsFromCsv(input);
-  } catch (error) {
-    console.warn(
-      'CSV Import: AI import failed, attempting traditional fallback.',
-      error
-    );
-    usedMethod = 'Traditional';
+    let result: ImportStudentsOutput;
+    let usedMethod: 'AI' | 'Traditional' = 'AI';
 
-    // --- Fallback to Traditional Import ---
     try {
+      // --- Attempt to use the AI-based import first ---
+      result = await importStudentsWithAiAction(input);
+    } catch (error) {
+      console.warn(
+        'CSV Import: AI import failed, attempting traditional fallback.',
+        error
+      );
+      usedMethod = 'Traditional';
+
+      // --- Fallback to Traditional Import ---
       const traditionalResult = await importStudentsWithTraditionalAction(input);
-      // The traditional action already handles uploads and summary, so we can return it directly.
-      return {
-        ...traditionalResult,
+      result = {
+        validatedStudents: traditionalResult.validatedStudents,
         importSummary: `(Traditional Fallback) ${traditionalResult.importSummary}`,
-      };
-    } catch (traditionalError) {
-      console.error(
-        'CSV Import Error: Traditional import also failed.',
-        traditionalError
-      );
-      const errorMessage = `Import failed: Both AI and traditional processing methods failed.`;
-      return {
-        importSummary: errorMessage,
-        skippedRecordsDetails: [],
-        uploadErrorsDetails: [],
-        validatedStudents: [],
+        failureReason: traditionalResult.failureReason,
       };
     }
-  }
 
-  // --- Upload Validated Students to Firestore (after successful AI processing) ---
-  const uploadErrorsDetails: UploadErrorDetail[] = [];
-  if (result.validatedStudents.length > 0) {
-    let uploadedCount = 0;
-    console.log(
-      `CSV Import (AI): Starting Firestore upload for ${result.validatedStudents.length} valid students.`
-    );
+    // --- Upload Validated Students to Firestore (after successful processing) ---
+    const uploadErrorsDetails: UploadErrorDetail[] = [];
+    if (result.validatedStudents.length > 0) {
+      let uploadedCount = 0;
+      console.log(
+        `CSV Import (${usedMethod}): Starting Firestore upload for ${result.validatedStudents.length} valid students.`
+      );
 
-    for (const student of result.validatedStudents) {
-      try {
-        await addStudent(student);
-        uploadedCount++;
-      } catch (error) {
-        console.error(
-          'CSV Import Error (AI): Error adding document to Firestore.',
-          { student, error }
-        );
-        uploadErrorsDetails.push({
-          student,
-          error: error instanceof Error ? error.message : String(error),
-        });
+      for (const student of result.validatedStudents) {
+        try {
+          await addStudent(student);
+          uploadedCount++;
+        } catch (error) {
+          console.error(
+            `CSV Import Error (${usedMethod}): Error adding document to Firestore.`,
+            { student, error }
+          );
+          uploadErrorsDetails.push({
+            student,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
       }
+
+      const uploadFailedCount = uploadErrorsDetails.length;
+      const successfullyImportedAndUploaded = uploadedCount;
+
+      result.importSummary = `${result.importSummary}. Successfully uploaded ${successfullyImportedAndUploaded} records. Failed to upload ${uploadFailedCount} records.`;
+
+      if (uploadFailedCount > 0) {
+        console.error(
+          `CSV Import Errors (${usedMethod}): Firestore upload failures:`,
+          uploadErrorsDetails
+        );
+      }
+
+      if (uploadedCount > 0) {
+        revalidatePath('/students');
+      }
+    } else {
+      console.warn(`CSV Import (${usedMethod}): No valid students found to upload to Firestore.`);
     }
 
-    const uploadFailedCount = uploadErrorsDetails.length;
-    const successfullyImportedAndUploaded = uploadedCount;
+    result.importSummary = `(${usedMethod} Used) ${result.importSummary}`;
 
-    // We get the summary from the AI, and append upload status.
-    result.importSummary = `${result.importSummary}. Successfully uploaded ${successfullyImportedAndUploaded} records. Failed to upload ${uploadFailedCount} records.`;
-
-    if (uploadFailedCount > 0) {
-      console.error(
-        'CSV Import Errors (AI): Firestore upload failures:',
-        uploadErrorsDetails
-      );
-    }
-
-    if (uploadedCount > 0) {
-      revalidatePath('/students');
-    }
-  } else {
-    console.warn('CSV Import (AI): No valid students found to upload to Firestore.');
+    return {
+      ...result,
+      uploadErrorsDetails,
+    };
+  } catch (e) {
+    console.error('[CRITICAL] Unhandled error in importStudentsCsvAction:', e);
+    return {
+      validatedStudents: [],
+      importSummary: 'Import failed due to an unexpected server error.',
+      failureReason: 'An unexpected error occurred. Please check the server logs for more details.',
+      uploadErrorsDetails: [],
+    };
   }
-
-  result.importSummary = `(AI Used) ${result.importSummary}`;
-
-  return {
-    ...result,
-    uploadErrorsDetails,
-  };
 }
