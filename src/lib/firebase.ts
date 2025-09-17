@@ -12,6 +12,7 @@ const firebaseConfig = {
 };
 
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-const db = getFirestore(app);
+// Explicitly specify the database ID to connect to the correct instance.
+const db = getFirestore(app, '(default)');
 
 export { db };
