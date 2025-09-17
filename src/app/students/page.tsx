@@ -34,9 +34,7 @@ export default function StudentsPage() {
     const filtered = students.filter(
       (student) =>
         student.name.toLowerCase().includes(lowercasedQuery) ||
-        student.studentId.toLowerCase().includes(lowercasedQuery) ||
-        student.email.toLowerCase().includes(lowercasedQuery) ||
-        student.major.toLowerCase().includes(lowercasedQuery)
+        student.studentId.toLowerCase().includes(lowercasedQuery)
     );
     setFilteredStudents(filtered);
   }, [searchQuery, students]);

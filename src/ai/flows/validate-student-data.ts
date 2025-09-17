@@ -12,10 +12,8 @@ import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
 const ValidateStudentDataInputSchema = z.object({
-  studentId: z.string().describe('The unique identifier for the student.'),
+  studentId: z.string().describe('The unique registration number for the student, must be 10 digits.'),
   name: z.string().describe('The full name of the student.'),
-  email: z.string().email().describe('The email address of the student.'),
-  major: z.string().describe('The major or field of study of the student.'),
 });
 export type ValidateStudentDataInput = z.infer<typeof ValidateStudentDataInputSchema>;
 
@@ -37,14 +35,12 @@ const validateStudentDataPrompt = ai.definePrompt({
   prompt: `You are an expert data validator for a university attendance system. Your task is to validate the provided student data and correct any inconsistencies or errors.
 
   Here is the student data:
-  Student ID: {{{studentId}}}
+  Registration Number: {{{studentId}}}
   Name: {{{name}}}
-  Email: {{{email}}}
-  Major: {{{major}}}
 
-  Determine if the data is valid and consistent. If there are errors, correct them and provide a list of validation errors. If the data is valid, indicate that the data is valid and consistent.
+  Determine if the data is valid and consistent. The registration number must be exactly 10 digits. If there are errors, correct them and provide a list of validation errors. If the data is valid, indicate that the data is valid and consistent.
 
-  Ensure that the email is a valid email address. Return corrected data with all the original fields if there are errors.
+  Return corrected data with all the original fields if there are errors.
 `,
 });
 

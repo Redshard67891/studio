@@ -2,8 +2,6 @@ export type Student = {
   id: string;
   studentId: string;
   name: string;
-  email?: string;
-  major?: string;
 };
 
 export type Course = {
@@ -30,4 +28,5 @@ export type ImportStudentsOutput = {
   validatedStudents: Omit<Student, 'id'>[];
   importSummary: string;
   failureReason?: string;
+  skippedRecordsDetails?: { row: any; reason: string; originalIndex: number }[];
 };

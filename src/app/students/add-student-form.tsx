@@ -16,14 +16,12 @@ import {
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Terminal, Sparkles, Check } from "lucide-react";
+import { Sparkles, Check } from "lucide-react";
 import { createStudentAction, createStudentWithCorrection } from "./actions";
 
 const studentSchema = z.object({
-  studentId: z.string().min(1, "Student ID is required"),
+  studentId: z.string().min(1, "Registration Number is required"),
   name: z.string().min(1, "Name is required"),
-  email: z.string().email("Invalid email address"),
-  major: z.string().min(1, "Major is required"),
 });
 
 type StudentFormValues = z.infer<typeof studentSchema>;
@@ -43,8 +41,6 @@ export function AddStudentForm({ onFinished }: { onFinished: () => void }) {
     defaultValues: {
       studentId: "",
       name: "",
-      email: "",
-      major: "",
     },
   });
 
@@ -141,9 +137,9 @@ export function AddStudentForm({ onFinished }: { onFinished: () => void }) {
           name="studentId"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Student ID</FormLabel>
+              <FormLabel>Registration Number</FormLabel>
               <FormControl>
-                <Input placeholder="e.g., S001" {...field} />
+                <Input placeholder="e.g., 2021000001" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -157,36 +153,6 @@ export function AddStudentForm({ onFinished }: { onFinished: () => void }) {
               <FormLabel>Full Name</FormLabel>
               <FormControl>
                 <Input placeholder="e.g., Alice Johnson" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="email"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Email</FormLabel>
-              <FormControl>
-                <Input
-                  type="email"
-                  placeholder="e.g., alice@university.edu"
-                  {...field}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="major"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Major</FormLabel>
-              <FormControl>
-                <Input placeholder="e.g., Computer Science" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>

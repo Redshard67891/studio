@@ -15,10 +15,8 @@ export function StudentTable({ students }: { students: Student[] }) {
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead className="w-[120px]">Student ID</TableHead>
+            <TableHead className="w-[180px]">Registration Number</TableHead>
             <TableHead>Name</TableHead>
-            <TableHead>Email</TableHead>
-            <TableHead>Major</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -29,15 +27,11 @@ export function StudentTable({ students }: { students: Student[] }) {
                   {student.studentId}
                 </TableCell>
                 <TableCell>{student.name}</TableCell>
-                <TableCell>{student.email}</TableCell>
-                <TableCell>
-                  <Badge variant="secondary">{student.major}</Badge>
-                </TableCell>
               </TableRow>
             ))
           ) : (
             <TableRow>
-              <TableCell colSpan={4} className="h-24 text-center">
+              <TableCell colSpan={2} className="h-24 text-center">
                 No students found.
               </TableCell>
             </TableRow>

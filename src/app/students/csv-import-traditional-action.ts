@@ -1,10 +1,9 @@
-
 'use server';
 
 import Papa from 'papaparse';
 import { addStudent } from '@/lib/data';
 import { revalidatePath } from 'next/cache';
-import type { ImportStudentsInput } from '@/lib/types';
+import type { ImportStudentsInput, Student } from '@/lib/types';
 
 /**
  * A traditional, high-performance function to import and validate students from a CSV string.
@@ -55,7 +54,7 @@ export async function importStudentsWithTraditionalAction(
   }
 
 
-  const validatedStudents: { name: string; studentId: string; email?: string; major?: string; }[] = [];
+  const validatedStudents: Omit<Student, 'id'>[] = [];
   const skippedRecordsDetails: { row: any; reason: string; originalIndex: number }[] = [];
   
   const seenRegNumbers = new Set<string>();
@@ -64,11 +63,6 @@ export async function importStudentsWithTraditionalAction(
     const originalIndex = index + 2; // +1 for 0-index, +1 for header
     const name = row[nameKey]?.trim();
     let studentId = row[regKey]?.trim();
-
-    const emailKey = header.find(h => h.includes('email'));
-    const majorKey = header.find(h => h.includes('major'));
-    const email = emailKey ? row[emailKey]?.trim() : undefined;
-    const major = majorKey ? row[majorKey]?.trim() : undefined;
 
     if (!name || !studentId) {
       skippedRecordsDetails.push({ row, reason: 'Missing name or registration number.', originalIndex });
@@ -90,8 +84,6 @@ export async function importStudentsWithTraditionalAction(
     validatedStudents.push({
       name,
       studentId,
-      email: email || '',
-      major: major || ''
     });
     seenRegNumbers.add(studentId);
   }
@@ -108,5 +100,6 @@ export async function importStudentsWithTraditionalAction(
     validatedStudents,
     importSummary,
     failureReason: undefined,
+    skippedRecordsDetails,
   };
 }
