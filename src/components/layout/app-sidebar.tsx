@@ -24,7 +24,13 @@ import { useSidebar } from "../ui/sidebar";
 
 const AppSidebar = () => {
   const pathname = usePathname();
-  const { state } = useSidebar();
+  const { state, setOpenMobile, isMobile } = useSidebar();
+
+  const handleLinkClick = () => {
+    if (isMobile) {
+      setOpenMobile(false);
+    }
+  };
 
   return (
     <Sidebar>
@@ -44,7 +50,7 @@ const AppSidebar = () => {
               isActive={pathname === "/"}
               tooltip={{ children: "Dashboard" }}
             >
-              <Link href="/">
+              <Link href="/" onClick={handleLinkClick}>
                 <LayoutDashboard />
                 <span>Dashboard</span>
               </Link>
@@ -56,7 +62,7 @@ const AppSidebar = () => {
               isActive={pathname.startsWith("/students")}
               tooltip={{ children: "Students" }}
             >
-              <Link href="/students">
+              <Link href="/students" onClick={handleLinkClick}>
                 <Users />
                 <span>Students</span>
               </Link>
@@ -68,7 +74,7 @@ const AppSidebar = () => {
               isActive={pathname.startsWith("/courses")}
               tooltip={{ children: "Courses" }}
             >
-              <Link href="/courses">
+              <Link href="/courses" onClick={handleLinkClick}>
                 <Book />
                 <span>Courses</span>
               </Link>
@@ -80,7 +86,7 @@ const AppSidebar = () => {
               isActive={pathname.startsWith("/attendance")}
               tooltip={{ children: "Attendance" }}
             >
-              <Link href="/attendance">
+              <Link href="/attendance" onClick={handleLinkClick}>
                 <ClipboardCheck />
                 <span>Attendance</span>
               </Link>
@@ -92,7 +98,7 @@ const AppSidebar = () => {
               isActive={pathname.startsWith("/records")}
               tooltip={{ children: "Records" }}
             >
-              <Link href="/records">
+              <Link href="/records" onClick={handleLinkClick}>
                 <Archive />
                 <span>Records</span>
               </Link>
