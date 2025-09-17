@@ -4,6 +4,18 @@ import Papa from 'papaparse';
 import { addStudent } from '@/lib/data';
 import { revalidatePath } from 'next/cache';
 import type { ImportStudentsInput, Student } from '@/lib/types';
+import { z } from 'zod';
+
+const StudentDataSchema = z.object({
+  studentId: z
+    .string()
+    .min(1, { message: 'Registration number is required.' })
+    .trim()
+    .regex(/^\d{10}$/, {
+      message: 'Registration number must be exactly 10 digits.',
+    }),
+  name: z.string().min(1, { message: 'Name is required.' }).trim(),
+});
 
 /**
  * A traditional, high-performance function to import and validate students from a CSV string.
@@ -22,80 +34,98 @@ export async function importStudentsWithTraditionalAction(
   const parseResult = Papa.parse(csvData.trim(), {
     header: true,
     skipEmptyLines: true,
-    transformHeader: (header) => header.toLowerCase().trim().replace(/\s+/g, ''),
+    transformHeader: (header) => header.toLowerCase().trim(),
   });
 
+  // Log parsing errors as warnings and continue to process the data rows.
   if (parseResult.errors.length > 0) {
-    console.error("CSV Import Error (Traditional Parsing):", parseResult.errors);
-    throw new Error(
-      `The CSV file is malformed. Error: ${parseResult.errors[0].message}`
+    console.warn(
+      'CSV Import Warning (Traditional Parsing Errors Detected):',
+      parseResult.errors
     );
+    // We won't throw a critical error here for FieldMismatch, allowing
+    // the validation loop to process the rows.
+    // The FieldMismatch errors will be logged as warnings.
   }
 
   const rows = parseResult.data as Record<string, string>[];
   if (rows.length === 0) {
     return {
-        validatedStudents: [],
-        importSummary: 'Import complete. No data rows found in the CSV file.',
-        failureReason: 'No data rows found.',
+      validatedStudents: [],
+      importSummary: 'Import complete. No data rows found in the CSV file.',
+      failureReason: 'No data rows found.',
     };
   }
 
-  const header = parseResult.meta.fields;
-  if (!header) {
-    throw new Error('Could not determine headers from CSV file.');
-  }
-
-  const nameKey = header.find(h => h.includes('name'));
-  const regKey = header.find(h => h.includes('reg') || h.includes('id') || h.includes('studentid'));
-
-  if (!nameKey || !regKey) {
-      throw new Error("CSV headers must contain 'name' and 'studentId' (or 'registration number'/'reg no').");
-  }
-
+  // Adjust column finding based on your actual CSV headers
+  const header =
+    parseResult.meta.fields?.map((h) => h.toLowerCase().trim()) || [];
+  const studentIdKey =
+    header.find((h) => h.includes('student id') || h.includes('reg')) ||
+    'studentid';
+  const nameKey = header.find((h) => h.includes('name')) || 'name';
 
   const validatedStudents: Omit<Student, 'id'>[] = [];
-  const skippedRecordsDetails: { row: any; reason: string; originalIndex: number }[] = [];
-  
+  const skippedRecordsDetails: {
+    row: any;
+    reason: string;
+    originalIndex: number;
+  }[] = [];
+
   const seenRegNumbers = new Set<string>();
 
   for (const [index, row] of rows.entries()) {
     const originalIndex = index + 2; // +1 for 0-index, +1 for header
-    const name = row[nameKey]?.trim();
-    let studentId = row[regKey]?.trim();
 
-    if (!name || !studentId) {
-      skippedRecordsDetails.push({ row, reason: 'Missing name or registration number.', originalIndex });
-      continue;
-    }
-    
-    studentId = studentId.replace(/\D/g, '');
+    const studentIdValue = row[studentIdKey]?.trim();
+    const nameValue = row[nameKey]?.trim();
 
-    if (studentId.length !== 10) {
-        skippedRecordsDetails.push({ row, reason: `Registration number '${row[regKey]}' is not 10 digits.`, originalIndex });
+    const cleanedRow = {
+      studentId: studentIdValue ? studentIdValue.replace(/\D/g, '') : '',
+      name: nameValue || '',
+    };
+
+    const validationResult = StudentDataSchema.safeParse(cleanedRow);
+
+    if (validationResult.success) {
+      if (seenRegNumbers.has(validationResult.data.studentId)) {
+        skippedRecordsDetails.push({
+          row,
+          reason: `Duplicate registration number: ${validationResult.data.studentId}.`,
+          originalIndex,
+        });
         continue;
+      }
+      validatedStudents.push(validationResult.data);
+      seenRegNumbers.add(validationResult.data.studentId);
+    } else {
+      const errors = validationResult.error.errors
+        .map((e) => {
+          const path = e.path.join('.');
+          const message = e.message;
+          const received = (cleanedRow as any)[e.path[0]];
+          return `Field '${path}': ${message} (Received: "${received}")`;
+        })
+        .join('; ');
+      skippedRecordsDetails.push({
+        row: cleanedRow,
+        reason: `Validation failed - ${errors}`,
+        originalIndex,
+      });
     }
-
-    if (seenRegNumbers.has(studentId)) {
-        skippedRecordsDetails.push({ row, reason: `Duplicate registration number: ${studentId}.`, originalIndex });
-        continue;
-    }
-
-    validatedStudents.push({
-      name,
-      studentId,
-    });
-    seenRegNumbers.add(studentId);
   }
-  
+
   const validationSkippedCount = skippedRecordsDetails.length;
 
   const importSummary = `Processing complete. Found ${validatedStudents.length} valid records. Skipped ${validationSkippedCount} records.`;
-  
+
   if (skippedRecordsDetails.length > 0) {
-    console.warn("CSV Import Skipped Records (Traditional):", skippedRecordsDetails);
+    console.warn(
+      'CSV Import Skipped Records (Traditional):',
+      skippedRecordsDetails
+    );
   }
-  
+
   return {
     validatedStudents,
     importSummary,
