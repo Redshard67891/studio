@@ -1,93 +1,91 @@
-import { db } from "./firebase";
+import clientPromise from "./mongodb";
 import type { Student, Course, AttendanceRecord } from "./types";
-import {
-  collection,
-  getDocs,
-  doc,
-  getDoc,
-  addDoc,
-  query,
-  where,
-  writeBatch,
-} from "firebase/firestore";
+import { ObjectId } from "mongodb";
 
-// Helper to convert a Firestore document to a specific type
-function fromDoc<T>(doc: any): T {
-  const data = doc.data() as T;
-  return { ...data, id: doc.id };
+// Helper to get the database instance
+async function getDb() {
+  const client = await clientPromise;
+  return client.db(); // The database name is specified in the connection string
 }
 
-// Functions to interact with Firestore
+// Helper to convert a MongoDB document to our application types
+// It converts the _id field from an ObjectId to a string.
+function fromDoc<T>(doc: any): T {
+  const { _id, ...data } = doc;
+  return { ...data, id: _id.toHexString() } as T;
+}
+
+// --- Student Functions ---
+
 export const getStudents = async (): Promise<Student[]> => {
-  const snapshot = await getDocs(collection(db, "students"));
-  return snapshot.docs.map((doc) => fromDoc<Student>(doc));
+  const db = await getDb();
+  const students = await db.collection("students").find({}).toArray();
+  return students.map(fromDoc);
 };
 
 export const getStudentById = async (id: string): Promise<Student | null> => {
-  const docRef = doc(db, "students", id);
-  const docSnap = await getDoc(docRef);
-  return docSnap.exists() ? fromDoc<Student>(docSnap) : null;
+  if (!ObjectId.isValid(id)) return null;
+  const db = await getDb();
+  const student = await db.collection("students").findOne({ _id: new ObjectId(id) });
+  return student ? fromDoc<Student>(student) : null;
+};
+
+export const addStudent = async (student: Omit<Student, "id">): Promise<Student> => {
+  const db = await getDb();
+  const result = await db.collection("students").insertOne(student);
+  return { ...student, id: result.insertedId.toHexString() };
 };
 
 export const getStudentsByCourse = async (courseId: string): Promise<Student[]> => {
-  // In a real app, you might have a subcollection or a field to filter by.
-  // For now, we'll return all students, assuming they can be enrolled in any course.
-  return getStudents();
-}
-
-export const addStudent = async (student: Omit<Student, "id">): Promise<Student> => {
-  const docRef = await addDoc(collection(db, "students"), student);
-  return { ...student, id: docRef.id };
+  // Assuming a direct relationship for now. In a real MongoDB schema,
+  // you might have an array of student IDs in the course document or vice-versa.
+  return getStudents(); 
 };
 
+// --- Course Functions ---
+
 export const getCourses = async (): Promise<Course[]> => {
-  const snapshot = await getDocs(collection(db, "courses"));
-  return snapshot.docs.map((doc) => fromDoc<Course>(doc));
+  const db = await getDb();
+  const courses = await db.collection("courses").find({}).toArray();
+  return courses.map(fromDoc);
 };
 
 export const getCourseById = async (id: string): Promise<Course | null> => {
-  const docRef = doc(db, "courses", id);
-  const docSnap = await getDoc(docRef);
-  return docSnap.exists() ? fromDoc<Course>(docSnap) : null;
+  if (!ObjectId.isValid(id)) return null;
+  const db = await getDb();
+  const course = await db.collection("courses").findOne({ _id: new ObjectId(id) });
+  return course ? fromDoc<Course>(course) : null;
 };
 
 export const addCourse = async (course: Omit<Course, "id">): Promise<Course> => {
-  const docRef = await addDoc(collection(db, "courses"), course);
-  return { ...course, id: docRef.id };
+  const db = await getDb();
+  const result = await db.collection("courses").insertOne(course);
+  return { ...course, id: result.insertedId.toHexString() };
 };
 
+// --- Attendance Functions ---
+
 export const getAttendanceByCourse = async (courseId: string): Promise<AttendanceRecord[]> => {
-  const q = query(collection(db, "attendance"), where("courseId", "==", courseId));
-  const snapshot = await getDocs(q);
-  return snapshot.docs.map((doc) => fromDoc<AttendanceRecord>(doc));
+  const db = await getDb();
+  const records = await db.collection("attendance").find({ courseId }).toArray();
+  return records.map(fromDoc);
 };
 
 export const saveAttendance = async (records: Omit<AttendanceRecord, "id">[]): Promise<void> => {
-    const batch = writeBatch(db);
+  const db = await getDb();
+  const bulkOps = records.map(record => ({
+    updateOne: {
+      filter: { 
+        courseId: record.courseId, 
+        studentId: record.studentId, 
+        date: record.date 
+      },
+      update: { $set: { status: record.status } },
+      upsert: true, // This will insert the document if it doesn't exist
+    }
+  }));
 
-    const promises = records.map(async (record) => {
-        const { courseId, studentId, date, status } = record;
-
-        // Query for an existing record
-        const q = query(collection(db, "attendance"),
-            where("courseId", "==", courseId),
-            where("studentId", "==", studentId),
-            where("date", "==", date)
-        );
-
-        const snapshot = await getDocs(q);
-
-        if (!snapshot.empty) {
-            // Update existing record
-            const docRef = snapshot.docs[0].ref;
-            batch.update(docRef, { status });
-        } else {
-            // Add new record
-            const docRef = doc(collection(db, "attendance"));
-            batch.set(docRef, record);
-        }
-    });
-
-    await Promise.all(promises);
-    await batch.commit();
+  if (bulkOps.length > 0) {
+    await db.collection("attendance").bulkWrite(bulkOps);
+  }
 };
