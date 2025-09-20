@@ -1,5 +1,3 @@
-'use server';
-
 /**
  * @fileOverview Data validation flow for student records using an LLM.
  *
@@ -9,7 +7,7 @@
  */
 
 import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import {z} from 'zod';
 
 const ValidateStudentDataInputSchema = z.object({
   studentId: z.string().describe('The unique registration number for the student, must be 10 digits.'),
