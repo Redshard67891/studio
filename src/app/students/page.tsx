@@ -4,12 +4,20 @@ import { AddStudentDialog } from "./add-student-dialog";
 import { CsvImportDialog } from "./csv-import-dialog";
 import type { Student } from "@/lib/types";
 import { StudentsList } from "./students-list";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Button } from "@/components/ui/button";
+import { Plus, UserPlus } from "lucide-react";
+import Link from "next/link";
+import { AddBulkStudentsButton } from "./add-bulk-students-button";
 
-// This page is now a Server Component. It fetches data on the server.
 export const dynamic = "force-dynamic";
 
 export default async function StudentsPage() {
-  // Data is fetched on the server, so `mongodb` is not sent to the client.
   const students: Student[] = await getStudents();
 
   return (
@@ -20,12 +28,16 @@ export default async function StudentsPage() {
         actions={
           <div className="flex gap-2">
             <CsvImportDialog />
-            <AddStudentDialog />
+            <AddStudentDialog>
+                <Button>
+                    <Plus className="mr-2 h-4 w-4" /> Add Student
+                </Button>
+            </AddStudentDialog>
+            <AddBulkStudentsButton />
           </div>
         }
       />
       <div className="p-6 sm:p-8 flex-1">
-        {/* The StudentsList component handles the client-side interactivity */}
         <StudentsList initialStudents={students} />
       </div>
     </div>
