@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { ObjectId } from 'mongodb';
 import type { ValidateStudentDataInput } from '@/ai/flows/validate-student-data';
 import { validateStudentData } from '@/ai/flows/validate-student-data';
+import { parseStudentDataFromText } from '@/ai/flows/parse-student-data';
 import { addStudent, updateStudent, deleteStudent as dbDeleteStudent } from '@/lib/data';
 import type { Student } from '@/lib/types';
 
@@ -128,6 +129,32 @@ export async function deleteStudentAction(id: string) {
     return {
       success: false,
       message: 'An unexpected error occurred while deleting the student.',
+    };
+  }
+}
+
+export async function parseStudentsWithAIAction(rawData: string) {
+  if (!rawData || rawData.trim() === '') {
+    return {
+      success: false,
+      message: 'Input data is empty.',
+      students: [],
+    };
+  }
+
+  try {
+    const result = await parseStudentDataFromText({ textData: rawData });
+    return {
+      success: true,
+      students: result.students,
+      message: 'Data parsed successfully. Please review before importing.',
+    };
+  } catch (error) {
+    console.error('Error in parseStudentsWithAIAction:', error);
+    return {
+      success: false,
+      message: 'The AI failed to parse the data. Please check the format or try again.',
+      students: [],
     };
   }
 }
