@@ -11,6 +11,7 @@ async function getDb() {
 // Helper to convert a MongoDB document to our application types
 // It converts the _id field from an ObjectId to a string.
 function fromDoc<T>(doc: any): T {
+  if (!doc) return doc;
   const { _id, ...data } = doc;
   return { ...data, id: _id.toHexString() } as T;
 }
@@ -19,8 +20,8 @@ function fromDoc<T>(doc: any): T {
 
 export const getStudents = async (): Promise<Student[]> => {
   const db = await getDb();
-  const students = await db.collection("students").find({}).toArray();
-  return students.map(fromDoc);
+  const students = await db.collection("students").find({}).sort({ name: 1 }).toArray();
+  return students.map(doc => fromDoc<Student>(doc));
 };
 
 export const getStudentById = async (id: string): Promise<Student | null> => {
@@ -36,6 +37,30 @@ export const addStudent = async (student: Omit<Student, "id">): Promise<Student>
   return { ...student, id: result.insertedId.toHexString() };
 };
 
+export const updateStudent = async (id: string, studentData: Partial<Omit<Student, "id">>) => {
+  if (!ObjectId.isValid(id)) throw new Error("Invalid student ID format");
+  const db = await getDb();
+  const result = await db.collection("students").updateOne(
+    { _id: new ObjectId(id) },
+    { $set: studentData }
+  );
+  if (result.matchedCount === 0) {
+    throw new Error("Student not found for update");
+  }
+  return result;
+};
+
+export const deleteStudent = async (id: string) => {
+  if (!ObjectId.isValid(id)) throw new Error("Invalid student ID format");
+  const db = await getDb();
+  const result = await db.collection("students").deleteOne({ _id: new ObjectId(id) });
+  if (result.deletedCount === 0) {
+    throw new Error("Student not found for deletion");
+  }
+  return result;
+};
+
+
 export const getStudentsByCourse = async (courseId: string): Promise<Student[]> => {
   // Assuming a direct relationship for now. In a real MongoDB schema,
   // you might have an array of student IDs in the course document or vice-versa.
@@ -47,7 +72,7 @@ export const getStudentsByCourse = async (courseId: string): Promise<Student[]> 
 export const getCourses = async (): Promise<Course[]> => {
   const db = await getDb();
   const courses = await db.collection("courses").find({}).toArray();
-  return courses.map(fromDoc);
+  return courses.map(doc => fromDoc<Course>(doc));
 };
 
 export const getCourseById = async (id: string): Promise<Course | null> => {
@@ -68,7 +93,7 @@ export const addCourse = async (course: Omit<Course, "id">): Promise<Course> => 
 export const getAttendanceByCourse = async (courseId: string): Promise<AttendanceRecord[]> => {
   const db = await getDb();
   const records = await db.collection("attendance").find({ courseId }).toArray();
-  return records.map(fromDoc);
+  return records.map(doc => fromDoc<AttendanceRecord>(doc));
 };
 
 export const saveAttendance = async (records: Omit<AttendanceRecord, "id">[]): Promise<void> => {
