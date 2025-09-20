@@ -7,7 +7,15 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Button } from '@/components/ui/button';
+import { MoreHorizontal } from 'lucide-react';
 
 export function StudentTable({ students }: { students: Student[] }) {
   return (
@@ -17,6 +25,7 @@ export function StudentTable({ students }: { students: Student[] }) {
           <TableRow>
             <TableHead className="w-[180px]">Registration Number</TableHead>
             <TableHead>Name</TableHead>
+            <TableHead className="w-[80px] text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -27,11 +36,41 @@ export function StudentTable({ students }: { students: Student[] }) {
                   {student.studentId}
                 </TableCell>
                 <TableCell>{student.name}</TableCell>
+                <TableCell className="text-right">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" className="h-8 w-8 p-0">
+                        <span className="sr-only">Open menu</span>
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                      <DropdownMenuItem
+                        onClick={() => {
+                          // TODO: Implement Edit functionality
+                          console.log('Edit student:', student.id);
+                        }}
+                      >
+                        Edit Info
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                         onClick={() => {
+                          // TODO: Implement Delete functionality
+                          console.log('Delete student:', student.id);
+                        }}
+                        className="text-destructive"
+                      >
+                        Delete
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </TableCell>
               </TableRow>
             ))
           ) : (
             <TableRow>
-              <TableCell colSpan={2} className="h-24 text-center">
+              <TableCell colSpan={3} className="h-24 text-center">
                 No students found.
               </TableCell>
             </TableRow>
