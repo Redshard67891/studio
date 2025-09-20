@@ -96,7 +96,7 @@ export function CsvImportDialog() {
         <DialogHeader>
           <DialogTitle>Import Students via CSV</DialogTitle>
           <DialogDescription>
-            Upload a CSV file. The system will attempt to intelligently parse it. If AI processing fails, a standard parser will be used as a fallback.
+            Upload a CSV file with 'Student ID' and 'Full Name' columns. The system will process the file and import the student data.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
