@@ -1,3 +1,4 @@
+
 'use client';
 import { useState, useTransition } from 'react';
 import { Button } from '@/components/ui/button';
@@ -16,7 +17,7 @@ import { Label } from '@/components/ui/label';
 import { importStudentsCsvAction } from './csv-import-actions';
 import { useToast } from '@/hooks/use-toast';
 
-export function CsvImportDialog() {
+export function CsvImportDialog({ children }: { children?: React.ReactNode }) {
   const [open, setOpen] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -88,9 +89,11 @@ export function CsvImportDialog() {
       }}
     >
       <DialogTrigger asChild>
-        <Button variant="outline">
-          <Upload className="mr-2 h-4 w-4" /> Import CSV
-        </Button>
+        {children || (
+          <Button variant="outline">
+            <Upload className="mr-2 h-4 w-4" /> Import CSV
+          </Button>
+        )}
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>

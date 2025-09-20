@@ -1,9 +1,10 @@
+
 "use client";
 
 import { useState, useEffect, useTransition } from "react";
 import type { Student } from "@/lib/types";
 import { Input } from "@/components/ui/input";
-import { Search, ChevronDown, Plus, Wand2 } from "lucide-react";
+import { Search, ChevronDown, Plus, Wand2, Upload, ListPlus, UserPlus } from "lucide-react";
 import { StudentTable } from "./student-table";
 import { Button } from "@/components/ui/button";
 import {
@@ -28,7 +29,6 @@ import { deleteStudentAction } from "./actions";
 import { EditStudentForm } from "./edit-student-form";
 import { PageHeader } from "@/components/page-header";
 import { CsvImportDialog } from "./csv-import-dialog";
-import { AddBulkStudentsButton } from "./add-bulk-students-button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { AddStudentDialog } from "./add-student-dialog";
 import Link from "next/link";
@@ -114,21 +114,26 @@ export function StudentsList({ initialStudents }: { initialStudents: Student[] }
         description="Create and manage individual student records."
         actions={
           <div className="flex gap-2">
-            <CsvImportDialog />
-            <AddBulkStudentsButton />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button>
-                  <Plus className="mr-2 h-4 w-4" /> Add Student{" "}
+                  <Plus className="mr-2 h-4 w-4" /> Add Students{" "}
                   <ChevronDown className="ml-2 h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <AddStudentDialog>
                   <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                    <UserPlus className="mr-2 h-4 w-4" />
                     Add Single Student
                   </DropdownMenuItem>
                 </AddStudentDialog>
+                <DropdownMenuItem asChild>
+                  <Link href="/students/bulk-add">
+                    <ListPlus className="mr-2 h-4 w-4" />
+                    Add in Bulk
+                  </Link>
+                </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
                   <Link href="/students/smart-paste">
@@ -136,6 +141,12 @@ export function StudentsList({ initialStudents }: { initialStudents: Student[] }
                     Smart Paste (AI)
                   </Link>
                 </DropdownMenuItem>
+                 <CsvImportDialog>
+                    <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                      <Upload className="mr-2 h-4 w-4" />
+                       Import CSV
+                    </DropdownMenuItem>
+                 </CsvImportDialog>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
