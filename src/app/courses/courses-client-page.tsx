@@ -45,6 +45,16 @@ export function CoursesClientPage({ initialCourses }: { initialCourses: Course[]
     setCourseToDelete(course);
     setIsDeleteDialogOpen(true);
   };
+  
+  const handleEditClick = (course: Course) => {
+    // TODO: Implement Edit Dialog
+    toast({ title: "Coming Soon!", description: "Editing courses will be available soon." });
+  }
+
+  const handleEnrollClick = (course: Course) => {
+    // TODO: Implement Enroll Dialog
+    toast({ title: "Coming Soon!", description: "Enrolling students will be available soon." });
+  }
 
   const handleDeleteConfirm = () => {
     if (!courseToDelete) return;
@@ -91,7 +101,12 @@ export function CoursesClientPage({ initialCourses }: { initialCourses: Course[]
           }
         />
         <div className="p-6 sm:p-8 flex-1">
-          <CourseList courses={courses} onDelete={handleDeleteClick} />
+          <CourseList 
+            courses={courses} 
+            onDelete={handleDeleteClick}
+            onEdit={handleEditClick}
+            onEnroll={handleEnrollClick}
+          />
         </div>
       </div>
 
