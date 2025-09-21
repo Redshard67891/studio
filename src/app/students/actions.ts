@@ -3,28 +3,36 @@
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { ObjectId } from 'mongodb';
-import type { ValidateStudentDataInput } from '@/ai/flows/validate-student-data';
-import { validateStudentData } from '@/ai/flows/validate-student-data';
 import { parseStudentDataFromText } from '@/ai/flows/parse-student-data';
 import { addStudent, updateStudent, deleteStudent as dbDeleteStudent } from '@/lib/data';
 import type { Student } from '@/lib/types';
 
 
-export async function createStudentAction(data: ValidateStudentDataInput) {
+const StudentSchema = z.object({
+  studentId: z
+    .string()
+    .trim()
+    .regex(/^\d{10}$/, 'Registration number must be exactly 10 digits.'),
+  name: z
+    .string()
+    .trim()
+    .min(1, 'Name is required.')
+    .transform((name) => name.replace(/[^a-zA-Z0-9\s]/g, '')),
+});
+
+export async function createStudentAction(data: Omit<Student, 'id'>) {
+  const validatedFields = StudentSchema.safeParse(data);
+
+  if (!validatedFields.success) {
+    return {
+      success: false,
+      message: 'Validation failed. Please check the errors.',
+      errors: validatedFields.error.flatten().fieldErrors,
+    };
+  }
+  
   try {
-    const validationResult = await validateStudentData(data);
-
-    if (!validationResult.isValid) {
-      return {
-        success: false,
-        message: 'AI validation failed. Please review the suggested corrections.',
-        errors: validationResult.validationErrors,
-        correctedData: validationResult.correctedData,
-      };
-    }
-
-    const studentData = validationResult.correctedData || data;
-    await addStudent(studentData);
+    await addStudent(validatedFields.data);
 
     revalidatePath('/students');
     return {
@@ -40,46 +48,10 @@ export async function createStudentAction(data: ValidateStudentDataInput) {
   }
 }
 
-export async function createStudentWithCorrection(
-  data: ValidateStudentDataInput
-) {
-  try {
-    // Even with correction, we should re-validate.
-    const validationResult = await validateStudentData(data);
-
-    if (!validationResult.isValid) {
-      // This case should ideally not be hit if the user is correcting data,
-      // but as a safeguard, we handle it.
-      return {
-        success: false,
-        message: 'Corrected data is still invalid. Please review.',
-        errors: validationResult.validationErrors,
-        correctedData: validationResult.correctedData,
-      };
-    }
-
-    const studentData = validationResult.correctedData || data;
-    await addStudent(studentData);
-
-    revalidatePath('/students');
-    return {
-      success: true,
-      message: 'Student added with corrected data!',
-    };
-  } catch (error) {
-    console.error('Error in createStudentWithCorrection:', error);
-    return {
-      success: false,
-      message: 'An unexpected error occurred while adding the student.',
-    };
-  }
-}
-
-const StudentUpdateSchema = z.object({
+const StudentUpdateSchema = StudentSchema.extend({
   id: z.string(),
-  studentId: z.string().min(1, "Registration Number is required"),
-  name: z.string().min(1, "Name is required"),
 });
+
 
 export async function updateStudentAction(data: z.infer<typeof StudentUpdateSchema>) {
   const validatedFields = StudentUpdateSchema.safeParse(data);

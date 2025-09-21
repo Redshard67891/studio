@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -15,27 +15,28 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Sparkles, Check } from "lucide-react";
-import { createStudentAction, createStudentWithCorrection } from "./actions";
+import { createStudentAction } from "./actions";
 
 const studentSchema = z.object({
-  studentId: z.string().min(1, "Registration Number is required"),
-  name: z.string().min(1, "Name is required"),
+  studentId: z
+    .string()
+    .trim()
+    .min(1, 'Registration number is required.')
+    .regex(/^\d{10}$/, 'Registration number must be exactly 10 digits.'),
+  name: z
+    .string()
+    .trim()
+    .min(1, 'Name is required.')
+    .transform((name) => name.replace(/[^a-zA-Z0-9\s]/g, '')),
 });
 
 type StudentFormValues = z.infer<typeof studentSchema>;
 
-type AiValidationState = {
-  errors?: string[];
-  correctedData?: StudentFormValues;
-};
 
 export function AddStudentForm({ onFinished }: { onFinished: () => void }) {
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
-  const [aiState, setAiState] = useState<AiValidationState | null>(null);
-
+  
   const form = useForm<StudentFormValues>({
     resolver: zodResolver(studentSchema),
     defaultValues: {
@@ -55,39 +56,20 @@ export function AddStudentForm({ onFinished }: { onFinished: () => void }) {
         form.reset();
         onFinished();
       } else {
-        if (result.correctedData) {
-          setAiState({
-            errors: result.errors,
-            correctedData: result.correctedData as StudentFormValues,
-          });
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: result.message || "An unknown error occurred.",
+        });
+        if (result.errors) {
+            const fieldErrors = result.errors as Record<string, any>;
+            if (fieldErrors.studentId) {
+                form.setError("studentId", { type: 'server', message: fieldErrors.studentId[0] });
+            }
+            if (fieldErrors.name) {
+                form.setError("name", { type: 'server', message: fieldErrors.name[0] });
+            }
         }
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: result.message,
-        });
-      }
-    });
-  };
-
-  const handleAcceptCorrection = () => {
-    if (!aiState?.correctedData) return;
-    startTransition(async () => {
-      const result = await createStudentWithCorrection(aiState.correctedData!);
-      if (result.success) {
-        toast({
-          title: "Success",
-          description: result.message,
-        });
-        form.reset();
-        setAiState(null);
-        onFinished();
-      } else {
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: result.message,
-        });
       }
     });
   };
@@ -95,43 +77,6 @@ export function AddStudentForm({ onFinished }: { onFinished: () => void }) {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-        {aiState?.correctedData && (
-          <Alert>
-            <Sparkles className="h-4 w-4" />
-            <AlertTitle>AI Validation Suggestion</AlertTitle>
-            <AlertDescription className="space-y-2">
-              <p>
-                {aiState.errors?.join(" ")} We've suggested some corrections.
-              </p>
-              <div className="space-y-1 text-xs font-mono rounded bg-muted p-2">
-                {Object.entries(aiState.correctedData).map(([key, value]) => (
-                  <p key={key}>
-                    <span className="font-bold">{key}:</span> {value}
-                  </p>
-                ))}
-              </div>
-              <div className="flex justify-end gap-2 pt-2">
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  onClick={() => setAiState(null)}
-                >
-                  Ignore
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  onClick={handleAcceptCorrection}
-                  className="bg-accent hover:bg-accent/90"
-                >
-                  <Check className="mr-2 h-4 w-4" /> Accept Correction
-                </Button>
-              </div>
-            </AlertDescription>
-          </Alert>
-        )}
-
         <FormField
           control={form.control}
           name="studentId"

@@ -20,8 +20,15 @@ import type { Student } from '@/lib/types';
 
 const studentSchema = z.object({
   id: z.string(),
-  studentId: z.string().min(1, 'Registration Number is required'),
-  name: z.string().min(1, 'Name is required'),
+  studentId: z
+    .string()
+    .trim()
+    .regex(/^\d{10}$/, 'Registration number must be exactly 10 digits.'),
+  name: z
+    .string()
+    .trim()
+    .min(1, 'Name is required.')
+    .transform((name) => name.replace(/[^a-zA-Z0-9\s]/g, '')),
 });
 
 type StudentFormValues = z.infer<typeof studentSchema>;
@@ -59,6 +66,15 @@ export function EditStudentForm({ student, onFinished }: EditStudentFormProps) {
           title: 'Error',
           description: result.message || 'An unknown error occurred.',
         });
+         if (result.errors) {
+            const fieldErrors = result.errors as Record<string, any>;
+            if (fieldErrors.studentId) {
+                form.setError("studentId", { type: 'server', message: fieldErrors.studentId[0] });
+            }
+            if (fieldErrors.name) {
+                form.setError("name", { type: 'server', message: fieldErrors.name[0] });
+            }
+        }
       }
     });
   };
