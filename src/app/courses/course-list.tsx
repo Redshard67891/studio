@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { Clock, MoreVertical, Trash2, UserPlus, Pencil } from "lucide-react";
+import { Clock, MoreVertical, Trash2, UserPlus, Pencil, ClipboardCheck } from "lucide-react";
 
 type CourseListProps = {
   courses: Course[];
@@ -53,17 +53,17 @@ export function CourseList({ courses, onDelete, onEdit, onEnroll }: CourseListPr
                     <UserPlus className="mr-2 h-4 w-4" />
                     Enroll Students
                   </DropdownMenuItem>
+                   <DropdownMenuItem asChild>
+                    <Link href={`/attendance/${course.id}`} className="flex items-center">
+                       <ClipboardCheck className="mr-2 h-4 w-4" />
+                       Manage Attendance
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={() => onEdit(course)}>
                     <Pencil className="mr-2 h-4 w-4" />
                     Edit Info
                   </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem asChild>
-                    <Link href={`/attendance/${course.id}`}>
-                      Manage Attendance
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={() => onDelete(course)} className="text-destructive">
                     <Trash2 className="mr-2 h-4 w-4" />
                     Delete Course

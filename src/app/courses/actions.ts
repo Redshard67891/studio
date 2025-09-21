@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { addCourse, updateCourse, deleteCourse as dbDeleteCourse } from "@/lib/data";
+import { addCourse, updateCourse, deleteCourse as dbDeleteCourse, enrollStudentsInCourse } from "@/lib/data";
 import { ObjectId } from "mongodb";
 
 const CourseSchema = z.object({
@@ -83,13 +83,54 @@ export async function deleteCourseAction(id: string) {
   try {
     await dbDeleteCourse(id);
     revalidatePath('/courses');
+    revalidatePath('/attendance');
     return {
       success: true,
-      message: 'Course and all associated attendance have been deleted.',
+      message: 'Course and all associated data have been deleted.',
     };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred.';
     console.error('Error in deleteCourseAction:', error);
+    return {
+      success: false,
+      message: errorMessage,
+    };
+  }
+}
+
+const EnrollStudentsSchema = z.object({
+  courseId: z.string(),
+  studentIds: z.array(z.string()),
+});
+
+export async function enrollStudentsAction(data: z.infer<typeof EnrollStudentsSchema>) {
+  const validatedFields = EnrollStudentsSchema.safeParse(data);
+
+  if (!validatedFields.success) {
+    return {
+      success: false,
+      message: 'Invalid data provided for enrollment.',
+    };
+  }
+  
+  if (validatedFields.data.studentIds.length === 0) {
+     return {
+      success: false,
+      message: 'No students were selected.',
+    };
+  }
+
+  try {
+    const result = await enrollStudentsInCourse(validatedFields.data.courseId, validatedFields.data.studentIds);
+    revalidatePath(`/courses`);
+    revalidatePath(`/attendance/${validatedFields.data.courseId}`);
+    return {
+      success: true,
+      message: `Successfully enrolled ${result.insertedCount} students.`,
+    };
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred.';
+    console.error('Error in enrollStudentsAction:', error);
     return {
       success: false,
       message: errorMessage,

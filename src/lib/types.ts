@@ -11,6 +11,12 @@ export type Course = {
   schedule: string;
 };
 
+export type Enrollment = {
+  id: string;
+  courseId: string;
+  studentId: string;
+};
+
 export type AttendanceRecord = {
   id: string;
   courseId: string;

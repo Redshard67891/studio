@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useTransition, useEffect } from "react";
-import type { Course } from "@/lib/types";
+import type { Course, Student } from "@/lib/types";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
@@ -29,6 +29,8 @@ import { AddCourseForm } from "./add-course-form";
 import { useToast } from "@/hooks/use-toast";
 import { deleteCourseAction } from "./actions";
 import { EditCourseForm } from "./edit-course-form";
+import { EnrollmentDialog } from "./enrollment-dialog";
+import { getStudentsNotEnrolledInCourse } from "@/lib/data";
 
 
 export function CoursesClientPage({ initialCourses }: { initialCourses: Course[] }) {
@@ -37,6 +39,10 @@ export function CoursesClientPage({ initialCourses }: { initialCourses: Course[]
   const [courseToDelete, setCourseToDelete] = useState<Course | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [courseToEdit, setCourseToEdit] = useState<Course | null>(null);
+  const [isEnrollDialogOpen, setIsEnrollDialogOpen] = useState(false);
+  const [courseToEnroll, setCourseToEnroll] = useState<Course | null>(null);
+  const [unenrolledStudents, setUnenrolledStudents] = useState<Student[]>([]);
+
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
 
@@ -55,9 +61,12 @@ export function CoursesClientPage({ initialCourses }: { initialCourses: Course[]
     setIsEditDialogOpen(true);
   }
 
-  const handleEnrollClick = (course: Course) => {
-    // TODO: Implement Enroll Dialog
-    toast({ title: "Coming Soon!", description: "Enrolling students will be available soon." });
+  const handleEnrollClick = async (course: Course) => {
+    setCourseToEnroll(course);
+    // Fetch students who are not yet enrolled in this specific course
+    const studentsToDisplay = await getStudentsNotEnrolledInCourse(course.id);
+    setUnenrolledStudents(studentsToDisplay);
+    setIsEnrollDialogOpen(true);
   }
 
   const handleDeleteConfirm = () => {
@@ -66,7 +75,6 @@ export function CoursesClientPage({ initialCourses }: { initialCourses: Course[]
       const result = await deleteCourseAction(courseToDelete.id);
       if (result.success) {
         toast({ title: "Success", description: result.message });
-        // Server action revalidates, so useEffect will update the courses
       } else {
         toast({
           variant: "destructive",
@@ -124,7 +132,7 @@ export function CoursesClientPage({ initialCourses }: { initialCourses: Course[]
             <AlertDialogDescription>
               This action cannot be undone. This will permanently delete the
               course <span className="font-semibold">{courseToDelete?.title}</span> and
-              all of its associated attendance records.
+              all of its associated enrollment and attendance records.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -154,6 +162,15 @@ export function CoursesClientPage({ initialCourses }: { initialCourses: Course[]
           )}
         </DialogContent>
       </Dialog>
+
+       {courseToEnroll && (
+        <EnrollmentDialog
+          open={isEnrollDialogOpen}
+          onOpenChange={setIsEnrollDialogOpen}
+          course={courseToEnroll}
+          students={unenrolledStudents}
+        />
+      )}
     </>
   );
 }

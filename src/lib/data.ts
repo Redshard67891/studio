@@ -1,5 +1,5 @@
 import clientPromise from "./mongodb";
-import type { Student, Course, AttendanceRecord } from "./types";
+import type { Student, Course, AttendanceRecord, Enrollment } from "./types";
 import { ObjectId } from "mongodb";
 
 // Helper to get the database instance
@@ -69,19 +69,28 @@ export const updateStudent = async (id: string, studentData: Partial<Omit<Studen
 export const deleteStudent = async (id: string) => {
   if (!ObjectId.isValid(id)) throw new Error("Invalid student ID format");
   const db = await getDb();
-  const result = await db.collection("students").deleteOne({ _id: new ObjectId(id) });
-  if (result.deletedCount === 0) {
-    throw new Error("Student not found for deletion");
+  
+  const session = (await clientPromise).startSession();
+  session.startTransaction();
+  try {
+    const result = await db.collection("students").deleteOne({ _id: new ObjectId(id) }, { session });
+    if (result.deletedCount === 0) {
+      throw new Error("Student not found for deletion");
+    }
+    // Also remove any enrollments for this student
+    await db.collection("enrollments").deleteMany({ studentId: id }, { session });
+    await db.collection("attendance").deleteMany({ studentId: id }, { session });
+    
+    await session.commitTransaction();
+    return result;
+  } catch (error) {
+    await session.abortTransaction();
+    throw error;
+  } finally {
+    session.endSession();
   }
-  return result;
 };
 
-
-export const getStudentsByCourse = async (courseId: string): Promise<Student[]> => {
-  // Assuming a direct relationship for now. In a real MongoDB schema,
-  // you might have an array of student IDs in the course document or vice-versa.
-  return getStudents(); 
-};
 
 // --- Course Functions ---
 
@@ -123,33 +132,61 @@ export const deleteCourse = async (id: string) => {
   if (!ObjectId.isValid(id)) throw new Error("Invalid course ID format");
   const db = await getDb();
 
-  // Start a transaction
   const session = (await clientPromise).startSession();
   session.startTransaction();
   try {
-    // 1. Delete the course itself
     const courseDeletionResult = await db.collection("courses").deleteOne({ _id: new ObjectId(id) }, { session });
     if (courseDeletionResult.deletedCount === 0) {
       throw new Error("Course not found for deletion");
     }
 
-    // 2. Delete all attendance records associated with this course
     await db.collection("attendance").deleteMany({ courseId: id }, { session });
-    
-    // TODO: Delete enrollments when the schema is updated
+    await db.collection("enrollments").deleteMany({ courseId: id }, { session });
 
-    // Commit the transaction
     await session.commitTransaction();
     return courseDeletionResult;
   } catch (error) {
-    // If an error occurs, abort the transaction
     await session.abortTransaction();
-    throw error; // Re-throw the error to be handled by the caller
+    throw error; 
   } finally {
-    // End the session
     session.endSession();
   }
 };
+
+// --- Enrollment Functions ---
+
+export const getEnrolledStudents = async (courseId: string): Promise<Student[]> => {
+  const db = await getDb();
+  const enrollments = await db.collection<Enrollment>("enrollments").find({ courseId }).toArray();
+  const studentIds = enrollments.map(e => new ObjectId(e.studentId));
+  
+  const students = await db.collection<Student>("students").find({ _id: { $in: studentIds } }).sort({ name: 1 }).toArray();
+  return students.map(doc => fromDoc<Student>(doc));
+};
+
+export const getStudentsNotEnrolledInCourse = async (courseId: string): Promise<Student[]> => {
+  const db = await getDb();
+  const enrollments = await db.collection("enrollments").find({ courseId }).toArray();
+  const enrolledStudentIds = enrollments.map(e => new ObjectId(e.studentId));
+
+  const students = await db.collection("students").find({ _id: { $nin: enrolledStudentIds } }).sort({ name: 1 }).toArray();
+  return students.map(doc => fromDoc<Student>(doc));
+}
+
+export const enrollStudentsInCourse = async (courseId: string, studentIds: string[]) => {
+  const db = await getDb();
+  const enrollments: Omit<Enrollment, "id">[] = studentIds.map(studentId => ({
+    courseId,
+    studentId,
+  }));
+
+  if (enrollments.length === 0) {
+    return { insertedCount: 0 };
+  }
+
+  const result = await db.collection("enrollments").insertMany(enrollments);
+  return result;
+}
 
 
 // --- Attendance Functions ---

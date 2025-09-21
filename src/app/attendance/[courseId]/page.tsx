@@ -1,5 +1,5 @@
 import { PageHeader } from "@/components/page-header";
-import { getCourseById, getStudentsByCourse, getAttendanceByCourse } from "@/lib/data";
+import { getCourseById, getEnrolledStudents, getAttendanceByCourse } from "@/lib/data";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AttendanceSheet } from "./attendance-sheet";
 import { AttendanceSummary } from "./attendance-summary";
@@ -17,7 +17,7 @@ export default async function CourseAttendancePage({
     notFound();
   }
   
-  const students = await getStudentsByCourse(params.courseId);
+  const students = await getEnrolledStudents(params.courseId);
   const attendanceRecords = await getAttendanceByCourse(params.courseId);
 
   return (
