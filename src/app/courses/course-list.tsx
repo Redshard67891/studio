@@ -1,3 +1,5 @@
+"use client";
+
 import type { Course } from "@/lib/types";
 import {
   Card,
@@ -7,18 +9,46 @@ import {
   CardContent,
   CardFooter,
 } from "@/components/ui/card";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { Clock, ArrowRight } from "lucide-react";
+import { Clock, MoreVertical, ArrowRight, Trash2 } from "lucide-react";
 
-export function CourseList({ courses }: { courses: Course[] }) {
+type CourseListProps = {
+  courses: Course[];
+  onDelete: (course: Course) => void;
+};
+
+export function CourseList({ courses, onDelete }: CourseListProps) {
   return (
     <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
       {courses.map((course) => (
         <Card key={course.id}>
           <CardHeader>
-            <CardTitle>{course.title}</CardTitle>
-            <CardDescription>{course.code}</CardDescription>
+            <div className="flex justify-between items-start">
+              <div>
+                <CardTitle>{course.title}</CardTitle>
+                <CardDescription>{course.code}</CardDescription>
+              </div>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-8 w-8">
+                    <MoreVertical className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => onDelete(course)} className="text-destructive">
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Delete Course
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           </CardHeader>
           <CardContent>
             <div className="flex items-center text-sm text-muted-foreground">

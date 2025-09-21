@@ -104,6 +104,39 @@ export const addCourse = async (course: Omit<Course, "id">): Promise<Course> => 
   return { ...course, id: result.insertedId.toHexString() };
 };
 
+export const deleteCourse = async (id: string) => {
+  if (!ObjectId.isValid(id)) throw new Error("Invalid course ID format");
+  const db = await getDb();
+
+  // Start a transaction
+  const session = (await clientPromise).startSession();
+  session.startTransaction();
+  try {
+    // 1. Delete the course itself
+    const courseDeletionResult = await db.collection("courses").deleteOne({ _id: new ObjectId(id) }, { session });
+    if (courseDeletionResult.deletedCount === 0) {
+      throw new Error("Course not found for deletion");
+    }
+
+    // 2. Delete all attendance records associated with this course
+    await db.collection("attendance").deleteMany({ courseId: id }, { session });
+    
+    // TODO: Delete enrollments when the schema is updated
+
+    // Commit the transaction
+    await session.commitTransaction();
+    return courseDeletionResult;
+  } catch (error) {
+    // If an error occurs, abort the transaction
+    await session.abortTransaction();
+    throw error; // Re-throw the error to be handled by the caller
+  } finally {
+    // End the session
+    session.endSession();
+  }
+};
+
+
 // --- Attendance Functions ---
 
 export const getAttendanceByCourse = async (courseId: string): Promise<AttendanceRecord[]> => {
