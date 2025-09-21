@@ -1,3 +1,4 @@
+
 "use client";
 
 import type { Course } from "@/lib/types";
@@ -25,6 +26,10 @@ type CourseListProps = {
 };
 
 export function CourseList({ courses, onDelete }: CourseListProps) {
+  if (courses.length === 0) {
+    return <p>No courses found. Create one to get started!</p>;
+  }
+
   return (
     <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
       {courses.map((course) => (
