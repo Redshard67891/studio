@@ -40,10 +40,11 @@ export async function createStudentAction(data: Omit<Student, 'id'>) {
       message: 'Student added successfully!',
     };
   } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred.';
     console.error('Error in createStudentAction:', error);
     return {
       success: false,
-      message: 'An unexpected error occurred while adding the student.',
+      message: errorMessage,
     };
   }
 }
@@ -73,10 +74,11 @@ export async function updateStudentAction(data: z.infer<typeof StudentUpdateSche
       message: "Student updated successfully!",
     };
   } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred.';
     console.error('Error in updateStudentAction:', error);
     return {
       success: false,
-      message: 'An unexpected error occurred while updating the student.',
+      message: errorMessage,
     };
   }
 }
@@ -97,10 +99,11 @@ export async function deleteStudentAction(id: string) {
       message: 'Student deleted successfully!',
     };
   } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred.';
     console.error('Error in deleteStudentAction:', error);
     return {
       success: false,
-      message: 'An unexpected error occurred while deleting the student.',
+      message: errorMessage,
     };
   }
 }

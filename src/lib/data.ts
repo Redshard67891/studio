@@ -33,6 +33,10 @@ export const getStudentById = async (id: string): Promise<Student | null> => {
 
 export const addStudent = async (student: Omit<Student, "id">): Promise<Student> => {
   const db = await getDb();
+  const existingStudent = await db.collection("students").findOne({ studentId: student.studentId });
+  if (existingStudent) {
+    throw new Error(`A student with registration number ${student.studentId} already exists.`);
+  }
   const result = await db.collection("students").insertOne(student);
   return { ...student, id: result.insertedId.toHexString() };
 };
@@ -40,6 +44,18 @@ export const addStudent = async (student: Omit<Student, "id">): Promise<Student>
 export const updateStudent = async (id: string, studentData: Partial<Omit<Student, "id">>) => {
   if (!ObjectId.isValid(id)) throw new Error("Invalid student ID format");
   const db = await getDb();
+  
+  // If studentId is being updated, check for duplicates on other students
+  if (studentData.studentId) {
+    const existingStudent = await db.collection("students").findOne({ 
+      studentId: studentData.studentId,
+      _id: { $ne: new ObjectId(id) } // $ne means "not equal"
+    });
+    if (existingStudent) {
+      throw new Error(`A student with registration number ${studentData.studentId} already exists.`);
+    }
+  }
+
   const result = await db.collection("students").updateOne(
     { _id: new ObjectId(id) },
     { $set: studentData }
