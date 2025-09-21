@@ -104,6 +104,21 @@ export const addCourse = async (course: Omit<Course, "id">): Promise<Course> => 
   return { ...course, id: result.insertedId.toHexString() };
 };
 
+export const updateCourse = async (id: string, courseData: Partial<Omit<Course, "id">>) => {
+  if (!ObjectId.isValid(id)) throw new Error("Invalid course ID format");
+  const db = await getDb();
+
+  const result = await db.collection("courses").updateOne(
+    { _id: new ObjectId(id) },
+    { $set: courseData }
+  );
+  if (result.matchedCount === 0) {
+    throw new Error("Course not found for update");
+  }
+  return result;
+};
+
+
 export const deleteCourse = async (id: string) => {
   if (!ObjectId.isValid(id)) throw new Error("Invalid course ID format");
   const db = await getDb();

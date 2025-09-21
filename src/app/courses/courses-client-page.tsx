@@ -28,11 +28,15 @@ import {
 import { AddCourseForm } from "./add-course-form";
 import { useToast } from "@/hooks/use-toast";
 import { deleteCourseAction } from "./actions";
+import { EditCourseForm } from "./edit-course-form";
+
 
 export function CoursesClientPage({ initialCourses }: { initialCourses: Course[] }) {
   const [courses, setCourses] = useState<Course[]>(initialCourses);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [courseToDelete, setCourseToDelete] = useState<Course | null>(null);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [courseToEdit, setCourseToEdit] = useState<Course | null>(null);
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
 
@@ -47,8 +51,8 @@ export function CoursesClientPage({ initialCourses }: { initialCourses: Course[]
   };
   
   const handleEditClick = (course: Course) => {
-    // TODO: Implement Edit Dialog
-    toast({ title: "Coming Soon!", description: "Editing courses will be available soon." });
+    setCourseToEdit(course);
+    setIsEditDialogOpen(true);
   }
 
   const handleEnrollClick = (course: Course) => {
@@ -62,7 +66,7 @@ export function CoursesClientPage({ initialCourses }: { initialCourses: Course[]
       const result = await deleteCourseAction(courseToDelete.id);
       if (result.success) {
         toast({ title: "Success", description: result.message });
-        setCourses(courses.filter(c => c.id !== courseToDelete.id));
+        // Server action revalidates, so useEffect will update the courses
       } else {
         toast({
           variant: "destructive",
@@ -133,6 +137,23 @@ export function CoursesClientPage({ initialCourses }: { initialCourses: Course[]
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit Course</DialogTitle>
+            <DialogDescription>
+              Update the details for the course.
+            </DialogDescription>
+          </DialogHeader>
+          {courseToEdit && (
+            <EditCourseForm
+              course={courseToEdit}
+              onFinished={() => setIsEditDialogOpen(false)}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
