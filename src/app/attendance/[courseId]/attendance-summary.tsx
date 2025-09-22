@@ -62,7 +62,7 @@ export function AttendanceSummary({
                   <TableRow key={data.id}>
                     <TableCell className="font-medium">{data.name}</TableCell>
                     <TableCell className="text-center">
-                        <Badge className="bg-green-100 text-green-800 hover:bg-green-200">{data.summary.present}</Badge>
+                        <Badge variant="secondary" className="bg-green-100 text-green-800 hover:bg-green-200 dark:bg-green-900/50 dark:text-green-200 dark:hover:bg-green-900/75">{data.summary.present}</Badge>
                     </TableCell>
                     <TableCell className="text-center">
                         <Badge variant="destructive">{data.summary.absent}</Badge>

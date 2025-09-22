@@ -61,11 +61,11 @@ export function AttendanceSheet({
               >
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="present" id={`present-${student.id}`} />
-                  <Label htmlFor={`present-${student.id}`} className="text-green-600">Present</Label>
+                  <Label htmlFor={`present-${student.id}`}>Present</Label>
                 </div>
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="absent" id={`absent-${student.id}`} />
-                  <Label htmlFor={`absent-${student.id}`} className="text-red-600">Absent</Label>
+                  <Label htmlFor={`absent-${student.id}`}>Absent</Label>
                 </div>
               </RadioGroup>
             </div>

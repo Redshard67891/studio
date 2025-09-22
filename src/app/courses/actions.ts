@@ -1,8 +1,9 @@
+
 "use server";
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { addCourse, updateCourse, deleteCourse as dbDeleteCourse, enrollStudentsInCourse } from "@/lib/data";
+import { addCourse, updateCourse, deleteCourse as dbDeleteCourse, enrollStudentsInCourse, getStudentsNotEnrolledInCourse } from "@/lib/data";
 import { ObjectId } from "mongodb";
 
 const CourseSchema = z.object({
@@ -136,4 +137,31 @@ export async function enrollStudentsAction(data: z.infer<typeof EnrollStudentsSc
       message: errorMessage,
     };
   }
+}
+
+
+export async function getStudentsForEnrollmentAction(courseId: string) {
+    if (!ObjectId.isValid(courseId)) {
+        return {
+            success: false,
+            message: "Invalid course ID provided.",
+            students: null,
+        }
+    }
+    
+    try {
+        const students = await getStudentsNotEnrolledInCourse(courseId);
+        return {
+            success: true,
+            students: students,
+        }
+    } catch(error) {
+        const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred.';
+        console.error('Error in getStudentsForEnrollmentAction:', error);
+        return {
+            success: false,
+            message: errorMessage,
+            students: null
+        }
+    }
 }

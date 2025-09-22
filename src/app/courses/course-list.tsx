@@ -29,7 +29,9 @@ type CourseListProps = {
 
 export function CourseList({ courses, onDelete, onEdit, onEnroll }: CourseListProps) {
   if (courses.length === 0) {
-    return <p>No courses found. Create one to get started!</p>;
+    return <div className="flex items-center justify-center h-40 border-2 border-dashed rounded-lg bg-muted/50">
+      <p className="text-muted-foreground">No courses found. Create one to get started!</p>
+    </div>;
   }
 
   return (

@@ -27,11 +27,9 @@ import {
 } from "@/components/ui/alert-dialog";
 import { AddCourseForm } from "./add-course-form";
 import { useToast } from "@/hooks/use-toast";
-import { deleteCourseAction } from "./actions";
+import { deleteCourseAction, getStudentsForEnrollmentAction } from "./actions";
 import { EditCourseForm } from "./edit-course-form";
 import { EnrollmentDialog } from "./enrollment-dialog";
-import { getStudentsNotEnrolledInCourse } from "@/lib/data";
-
 
 export function CoursesClientPage({ initialCourses }: { initialCourses: Course[] }) {
   const [courses, setCourses] = useState<Course[]>(initialCourses);
@@ -61,12 +59,21 @@ export function CoursesClientPage({ initialCourses }: { initialCourses: Course[]
     setIsEditDialogOpen(true);
   }
 
-  const handleEnrollClick = async (course: Course) => {
-    setCourseToEnroll(course);
-    // Fetch students who are not yet enrolled in this specific course
-    const studentsToDisplay = await getStudentsNotEnrolledInCourse(course.id);
-    setUnenrolledStudents(studentsToDisplay);
-    setIsEnrollDialogOpen(true);
+  const handleEnrollClick = (course: Course) => {
+    startTransition(async () => {
+      setCourseToEnroll(course);
+      const result = await getStudentsForEnrollmentAction(course.id);
+      if (result.success && result.students) {
+        setUnenrolledStudents(result.students);
+        setIsEnrollDialogOpen(true);
+      } else {
+        toast({
+            variant: "destructive",
+            title: "Error",
+            description: result.message || "Could not load students for enrollment."
+        });
+      }
+    });
   }
 
   const handleDeleteConfirm = () => {
