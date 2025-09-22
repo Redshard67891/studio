@@ -18,6 +18,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
 import { enrollStudentsAction } from "./actions";
 import { Search } from "lucide-react";
+import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
 
 interface EnrollmentDialogProps {
   open: boolean;
@@ -57,6 +59,16 @@ export function EnrollmentDialog({
     });
   };
 
+  const handleSelectAll = (checked: boolean | "indeterminate") => {
+    if (checked === true) {
+      const allFilteredIds = new Set(filteredStudents.map(s => s.id));
+      setSelectedStudentIds(allFilteredIds);
+    } else {
+      setSelectedStudentIds(new Set());
+    }
+  };
+
+
   const handleEnroll = () => {
     startTransition(async () => {
       const result = await enrollStudentsAction({
@@ -77,6 +89,11 @@ export function EnrollmentDialog({
     });
   };
 
+  const numSelected = selectedStudentIds.size;
+  const numFiltered = filteredStudents.length;
+  const isAllSelected = numFiltered > 0 && numSelected === numFiltered;
+  const isPartiallySelected = numSelected > 0 && numSelected < numFiltered;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg h-[80vh] flex flex-col">
@@ -96,8 +113,22 @@ export function EnrollmentDialog({
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
-        <ScrollArea className="flex-1 border rounded-md p-2">
-          <div className="space-y-2">
+        
+        {filteredStudents.length > 0 && (
+          <div className="flex items-center space-x-2 border-y py-2 px-2">
+            <Checkbox
+              id="select-all"
+              checked={isAllSelected || (isPartiallySelected ? "indeterminate" : false)}
+              onCheckedChange={handleSelectAll}
+            />
+            <Label htmlFor="select-all" className="font-medium cursor-pointer">
+              {isAllSelected ? "Deselect All" : "Select All"}
+            </Label>
+          </div>
+        )}
+
+        <ScrollArea className="flex-1 -mt-2">
+          <div className="space-y-2 p-2">
             {filteredStudents.length > 0 ? (
               filteredStudents.map((student) => (
                 <div
