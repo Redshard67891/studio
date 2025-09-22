@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { Clock, MoreVertical, Trash2, UserPlus, Pencil, ClipboardCheck } from "lucide-react";
+import { Clock, MoreVertical, Trash2, UserPlus, Pencil, ClipboardCheck, Users } from "lucide-react";
 
 type CourseListProps = {
   courses: Course[];
@@ -51,6 +51,12 @@ export function CourseList({ courses, onDelete, onEdit, onEnroll }: CourseListPr
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
+                  <DropdownMenuItem asChild>
+                    <Link href={`/courses/${course.id}/students`} className="flex items-center">
+                       <Users className="mr-2 h-4 w-4" />
+                       View Students
+                    </Link>
+                  </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => onEnroll(course)}>
                     <UserPlus className="mr-2 h-4 w-4" />
                     Enroll Students
