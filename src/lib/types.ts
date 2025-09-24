@@ -25,6 +25,12 @@ export type AttendanceRecord = {
   status: "present" | "absent";
 };
 
+export type RichAttendanceRecord = AttendanceRecord & {
+    studentName: string;
+    studentRegId: string;
+    courseTitle: string;
+}
+
 // Types for CSV Import Flow
 export type ImportStudentsInput = {
   csvData: string;
