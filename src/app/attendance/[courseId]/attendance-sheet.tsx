@@ -10,7 +10,7 @@ import { saveAttendanceAction } from "./actions";
 import { useToast } from "@/hooks/use-toast";
 import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
-import { Search, Check, X, Repeat } from "lucide-react";
+import { Search, Check, X } from "lucide-react";
 
 type AttendanceStatus = "present" | "absent";
 
@@ -51,21 +51,6 @@ export function AttendanceSheet({
      setAttendance(students.reduce((acc, student) => ({ ...acc, [student.id]: status }), {}));
   }
 
-  const invertAll = () => {
-    const inverted = { ...attendance };
-    for (const student of students) {
-        if (inverted[student.id] === 'present') {
-            inverted[student.id] = 'absent';
-        } else if (inverted[student.id] === 'absent') {
-            inverted[student.id] = 'present';
-        } else {
-            // If unmarked, default to present when inverting
-            inverted[student.id] = 'present';
-        }
-    }
-    setAttendance(inverted);
-  }
-
   const handleSave = () => {
     startTransition(async () => {
       const result = await saveAttendanceAction(courseId, attendance);
@@ -100,7 +85,6 @@ export function AttendanceSheet({
           <div className="flex gap-2 justify-end">
             <Button variant="outline" onClick={() => markAll('present')}><Check className="mr-2 h-4 w-4" />Mark All Present</Button>
             <Button variant="outline" onClick={() => markAll('absent')}><X className="mr-2 h-4 w-4" />Mark All Absent</Button>
-            <Button variant="outline" onClick={invertAll}><Repeat className="mr-2 h-4 w-4" />Invert</Button>
           </div>
         </div>
         <Separator />
