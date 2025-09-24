@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useMemo } from "react";
@@ -5,8 +6,11 @@ import type { RichAttendanceRecord, Course } from "@/lib/types";
 import { RecordsTable } from "./records-table";
 import { RecordsFilters, type FilterState } from "./records-filters";
 import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { DateRange } from "react-day-picker";
 import { subDays } from "date-fns";
+
+const PAGE_SIZE = 10;
 
 export function RecordsClientPage({
   initialRecords,
@@ -15,6 +19,7 @@ export function RecordsClientPage({
   initialRecords: RichAttendanceRecord[];
   courses: Course[];
 }) {
+  const [currentPage, setCurrentPage] = useState(1);
   const [filters, setFilters] = useState<FilterState>({
     studentQuery: "",
     courseId: "all",
@@ -57,6 +62,25 @@ export function RecordsClientPage({
     return records;
   }, [initialRecords, filters]);
 
+  // Reset to page 1 when filters change
+  useState(() => {
+    setCurrentPage(1);
+  });
+
+  const totalPages = Math.ceil(filteredRecords.length / PAGE_SIZE);
+  const paginatedRecords = filteredRecords.slice(
+    (currentPage - 1) * PAGE_SIZE,
+    currentPage * PAGE_SIZE
+  );
+
+  const handlePreviousPage = () => {
+    setCurrentPage((prev) => Math.max(prev - 1, 1));
+  };
+
+  const handleNextPage = () => {
+    setCurrentPage((prev) => Math.min(prev + 1, totalPages));
+  };
+
   return (
     <Card>
       <CardContent className="p-0">
@@ -66,7 +90,28 @@ export function RecordsClientPage({
             onFilterChange={setFilters}
         />
         <div className="border-t">
-          <RecordsTable data={filteredRecords} />
+          <RecordsTable data={paginatedRecords} />
+        </div>
+         <div className="flex items-center justify-end space-x-2 py-4 px-4 border-t">
+            <span className="text-sm text-muted-foreground">
+                Page {currentPage} of {totalPages}
+            </span>
+            <Button
+                variant="outline"
+                size="sm"
+                onClick={handlePreviousPage}
+                disabled={currentPage === 1}
+            >
+                Previous
+            </Button>
+            <Button
+                variant="outline"
+                size="sm"
+                onClick={handleNextPage}
+                disabled={currentPage === totalPages || totalPages === 0}
+            >
+                Next
+            </Button>
         </div>
       </CardContent>
     </Card>

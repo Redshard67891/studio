@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect, useTransition } from "react";
+import { useState, useEffect, useTransition, useMemo } from "react";
 import type { Student } from "@/lib/types";
 import { Input } from "@/components/ui/input";
 import { Search, ChevronDown, Plus, Wand2, Upload, ListPlus, UserPlus } from "lucide-react";
@@ -34,7 +34,7 @@ import { AddStudentDialog } from "./add-student-dialog";
 import Link from "next/link";
 
 
-const PAGE_SIZE = 5;
+const PAGE_SIZE = 10;
 
 // This client component handles the state for all student list interactions.
 export function StudentsList({ initialStudents }: { initialStudents: Student[] }) {
@@ -56,11 +56,11 @@ export function StudentsList({ initialStudents }: { initialStudents: Student[] }
   }, [initialStudents]);
 
   // Filter students whenever the search query or the base list of students changes.
-  const filteredStudents = students.filter(
+  const filteredStudents = useMemo(() => students.filter(
     (student) =>
       student.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       student.studentId.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  ), [students, searchQuery]);
   
   useEffect(() => {
     setCurrentPage(1);
