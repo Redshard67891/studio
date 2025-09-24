@@ -1,25 +1,24 @@
 'use server';
 
 import Papa from 'papaparse';
-import { addStudent } from '@/lib/data';
-import { revalidatePath } from 'next/cache';
 import type { ImportStudentsInput, Student } from '@/lib/types';
 import { z } from 'zod';
 
 const StudentDataSchema = z.object({
   studentId: z
     .string()
-    .min(1, { message: 'Registration number is required.' })
     .trim()
-    .regex(/^\d{10}$/, {
-      message: 'Registration number must be exactly 10 digits.',
-    }),
-  name: z.string().min(1, { message: 'Name is required.' }).trim(),
+    .regex(/^\d{10}$/, 'Registration number must be exactly 10 digits.'),
+  name: z
+    .string()
+    .trim()
+    .min(1, 'Name is required.')
+    .transform((name) => name.replace(/[^a-zA-Z0-9\s]/g, '')),
 });
+
 
 /**
  * A traditional, high-performance function to import and validate students from a CSV string.
- * This is used as a fallback if the AI import fails.
  */
 export async function importStudentsWithTraditionalAction(
   input: ImportStudentsInput
@@ -37,15 +36,11 @@ export async function importStudentsWithTraditionalAction(
     transformHeader: (header) => header.toLowerCase().trim(),
   });
 
-  // Log parsing errors as warnings and continue to process the data rows.
   if (parseResult.errors.length > 0) {
     console.warn(
       'CSV Import Warning (Traditional Parsing Errors Detected):',
       parseResult.errors
     );
-    // We won't throw a critical error here for FieldMismatch, allowing
-    // the validation loop to process the rows.
-    // The FieldMismatch errors will be logged as warnings.
   }
 
   const rows = parseResult.data as Record<string, string>[];
@@ -57,7 +52,6 @@ export async function importStudentsWithTraditionalAction(
     };
   }
 
-  // Adjust column finding based on your actual CSV headers
   const header =
     parseResult.meta.fields?.map((h) => h.toLowerCase().trim()) || [];
   const studentIdKey =

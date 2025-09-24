@@ -1,7 +1,8 @@
-'use server';
-
 /**
  * @fileOverview Data validation flow for student records using an LLM.
+ *
+ * This flow is kept for reference or future use but is no longer the primary
+ * validation method for single student entry.
  *
  * - validateStudentData - A function that validates and corrects student data entries.
  * - ValidateStudentDataInput - The input type for the validateStudentData function.
@@ -9,7 +10,7 @@
  */
 
 import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import {z} from 'zod';
 
 const ValidateStudentDataInputSchema = z.object({
   studentId: z.string().describe('The unique registration number for the student, must be 10 digits.'),
@@ -38,7 +39,7 @@ const validateStudentDataPrompt = ai.definePrompt({
   Registration Number: {{{studentId}}}
   Name: {{{name}}}
 
-  Determine if the data is valid and consistent. The registration number must be exactly 10 digits. If there are errors, correct them and provide a list of validation errors. If the data is valid, indicate that the data is valid and consistent.
+  Determine if the data is valid and consistent. The registration number must be exactly 10 digits. The name should not contain special characters. If there are errors, correct them and provide a list of validation errors. If the data is valid, indicate that the data is valid and consistent.
 
   Return corrected data with all the original fields if there are errors.
 `,

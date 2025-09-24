@@ -11,6 +11,12 @@ export type Course = {
   schedule: string;
 };
 
+export type Enrollment = {
+  id: string;
+  courseId: string;
+  studentId: string;
+};
+
 export type AttendanceRecord = {
   id: string;
   courseId: string;
@@ -18,6 +24,12 @@ export type AttendanceRecord = {
   date: string; // YYYY-MM-DD
   status: "present" | "absent";
 };
+
+export type RichAttendanceRecord = AttendanceRecord & {
+    studentName: string;
+    studentRegId: string;
+    courseTitle: string;
+}
 
 // Types for CSV Import Flow
 export type ImportStudentsInput = {

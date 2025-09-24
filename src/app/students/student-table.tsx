@@ -17,7 +17,13 @@ import {
 import { Button } from '@/components/ui/button';
 import { MoreHorizontal } from 'lucide-react';
 
-export function StudentTable({ students }: { students: Student[] }) {
+type StudentTableProps = {
+  students: Student[];
+  onEdit: (student: Student) => void;
+  onDelete: (student: Student) => void;
+};
+
+export function StudentTable({ students, onEdit, onDelete }: StudentTableProps) {
   return (
     <div className="border rounded-lg bg-card">
       <Table>
@@ -47,18 +53,12 @@ export function StudentTable({ students }: { students: Student[] }) {
                     <DropdownMenuContent align="end">
                       <DropdownMenuLabel>Actions</DropdownMenuLabel>
                       <DropdownMenuItem
-                        onClick={() => {
-                          // TODO: Implement Edit functionality
-                          console.log('Edit student:', student.id);
-                        }}
+                        onClick={() => onEdit(student)}
                       >
                         Edit Info
                       </DropdownMenuItem>
                       <DropdownMenuItem
-                         onClick={() => {
-                          // TODO: Implement Delete functionality
-                          console.log('Delete student:', student.id);
-                        }}
+                         onClick={() => onDelete(student)}
                         className="text-destructive"
                       >
                         Delete
