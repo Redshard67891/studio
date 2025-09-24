@@ -19,15 +19,17 @@ export async function saveAttendanceAction(
 
   try {
     await saveAttendance(recordsToSave);
+    // Revalidating the summary page is important
     revalidatePath(`/attendance/${courseId}`);
     return {
       success: true,
       message: "Attendance saved successfully!",
     };
   } catch (error) {
+    console.error("Error in saveAttendanceAction:", error);
     return {
       success: false,
-      message: "Failed to save attendance.",
+      message: error instanceof Error ? error.message : "Failed to save attendance.",
     };
   }
 }

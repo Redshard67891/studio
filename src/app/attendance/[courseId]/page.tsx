@@ -1,9 +1,21 @@
 import { PageHeader } from "@/components/page-header";
-import { getCourseById, getEnrolledStudents, getAttendanceByCourse } from "@/lib/data";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { getCourseById, getEnrolledStudents } from "@/lib/data";
 import { AttendanceSheet } from "./attendance-sheet";
-import { AttendanceSummary } from "./attendance-summary";
 import { notFound } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { BarChart2 } from "lucide-react";
+import Link from "next/link";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet"
+import { AttendanceSummary } from "./attendance-summary";
+import { getAttendanceByCourse } from "@/lib/data";
+
 
 export const dynamic = 'force-dynamic';
 
@@ -20,25 +32,35 @@ export default async function CourseAttendancePage({
   const students = await getEnrolledStudents(params.courseId);
   const attendanceRecords = await getAttendanceByCourse(params.courseId);
 
+
   return (
     <div className="flex flex-col h-full">
       <PageHeader
         title={course.title}
         description={`Manage attendance for ${course.code}`}
+        actions={
+          <Sheet>
+            <SheetTrigger asChild>
+               <Button variant="outline">
+                <BarChart2 className="mr-2 h-4 w-4" /> View Summary
+              </Button>
+            </SheetTrigger>
+            <SheetContent className="w-full sm:max-w-2xl overflow-y-auto">
+              <SheetHeader>
+                <SheetTitle>Attendance Summary</SheetTitle>
+                <SheetDescription>
+                  Review the overall attendance for {course.title}.
+                </SheetDescription>
+              </SheetHeader>
+               <div className="mt-4">
+                <AttendanceSummary students={students} records={attendanceRecords} />
+              </div>
+            </SheetContent>
+          </Sheet>
+        }
       />
       <div className="flex-1 p-6 sm:p-8">
-        <Tabs defaultValue="mark-attendance" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="mark-attendance">Mark Attendance</TabsTrigger>
-            <TabsTrigger value="summary">Attendance Summary</TabsTrigger>
-          </TabsList>
-          <TabsContent value="mark-attendance">
-            <AttendanceSheet courseId={course.id} students={students} />
-          </TabsContent>
-          <TabsContent value="summary">
-            <AttendanceSummary students={students} records={attendanceRecords} />
-          </TabsContent>
-        </Tabs>
+        <AttendanceSheet courseId={course.id} students={students} />
       </div>
     </div>
   );
