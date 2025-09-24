@@ -109,6 +109,10 @@ export const getCourseById = async (id: string): Promise<Course | null> => {
 
 export const addCourse = async (course: Omit<Course, "id">): Promise<Course> => {
   const db = await getDb();
+  const existingCourse = await db.collection("courses").findOne({ code: course.code });
+  if (existingCourse) {
+    throw new Error(`A course with the code "${course.code}" already exists.`);
+  }
   const result = await db.collection("courses").insertOne(course);
   return { ...course, id: result.insertedId.toHexString() };
 };

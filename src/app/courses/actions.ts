@@ -36,9 +36,10 @@ export async function createCourseAction(data: z.infer<typeof CourseSchema>) {
       message: "Course created successfully!",
     };
   } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred.';
     return {
       success: false,
-      message: "An error occurred while creating the course.",
+      message: errorMessage,
     };
   }
 }
