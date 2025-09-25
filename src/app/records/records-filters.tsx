@@ -16,7 +16,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
-import { Calendar as CalendarIcon, Search, CircleDashed } from "lucide-react";
+import { Calendar as CalendarIcon, Search, CircleDashed, Download } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
 import { DateRange } from "react-day-picker";
@@ -34,6 +34,8 @@ type RecordsFiltersProps = {
   filters: FilterState;
   onFilterChange: (filters: FilterState) => void;
   isFiltering: boolean;
+  onExport: () => void;
+  isExportDisabled: boolean;
 };
 
 export function RecordsFilters({
@@ -41,15 +43,17 @@ export function RecordsFilters({
   filters,
   onFilterChange,
   isFiltering,
+  onExport,
+  isExportDisabled,
 }: RecordsFiltersProps) {
   const handleFilterUpdate = (change: Partial<FilterState>) => {
     onFilterChange({ ...filters, ...change });
   };
 
   return (
-    <div className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+    <div className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
       {/* Student Search */}
-      <div className="relative">
+      <div className="relative lg:col-span-1">
         {isFiltering ? (
           <CircleDashed className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground animate-spin" />
         ) : (
@@ -137,6 +141,12 @@ export function RecordsFilters({
           <SelectItem value="absent">Absent</SelectItem>
         </SelectContent>
       </Select>
+
+      {/* Export Button */}
+      <Button onClick={onExport} disabled={isExportDisabled || isFiltering}>
+        <Download className="mr-2 h-4 w-4" />
+        Export CSV
+      </Button>
     </div>
   );
 }

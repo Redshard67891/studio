@@ -11,6 +11,7 @@ import { DateRange } from "react-day-picker";
 import { subDays } from "date-fns";
 import { filterRecordsAction } from "./actions";
 import { useToast } from "@/hooks/use-toast";
+import { exportToCsv } from "@/lib/csv";
 
 const PAGE_SIZE = 5;
 
@@ -67,6 +68,17 @@ export function RecordsClientPage({
   const handleNextPage = () => {
     setCurrentPage((prev) => Math.min(prev + 1, totalPages));
   };
+  
+  const handleExport = () => {
+    const dataToExport = records.map(r => ({
+      'Student Name': r.studentName,
+      'Registration ID': r.studentRegId,
+      'Course': r.courseTitle,
+      'Date': new Date(r.date).toLocaleDateString(),
+      'Status': r.status,
+    }));
+    exportToCsv(dataToExport, `attendance-records-${new Date().toISOString().split('T')[0]}.csv`);
+  }
 
   return (
     <Card>
@@ -76,6 +88,8 @@ export function RecordsClientPage({
             filters={filters}
             onFilterChange={setFilters}
             isFiltering={isPending}
+            onExport={handleExport}
+            isExportDisabled={records.length === 0}
         />
         <div className="border-t">
           <RecordsTable data={paginatedRecords} isLoading={isPending} />

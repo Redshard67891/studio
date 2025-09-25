@@ -3,7 +3,7 @@ import { getCourseById, getEnrolledStudents } from "@/lib/data";
 import { AttendanceSheet } from "./attendance-sheet";
 import { notFound } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, BarChart2 } from "lucide-react";
+import { ArrowLeft, BarChart2, Download } from "lucide-react";
 import Link from "next/link";
 import {
   Sheet,

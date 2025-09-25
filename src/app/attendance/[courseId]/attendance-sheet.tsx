@@ -10,7 +10,8 @@ import { saveAttendanceAction } from "./actions";
 import { useToast } from "@/hooks/use-toast";
 import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
-import { Search, Check, X } from "lucide-react";
+import { Search, Check, X, Download } from "lucide-react";
+import { exportToCsv } from "@/lib/csv";
 
 type AttendanceStatus = "present" | "absent";
 
@@ -62,6 +63,24 @@ export function AttendanceSheet({
     });
   };
 
+  const handleExport = () => {
+    if (Object.keys(attendance).length === 0) {
+      toast({
+        variant: "destructive",
+        title: "No data to export",
+        description: "Please mark attendance before exporting.",
+      });
+      return;
+    }
+    const dataToExport = students.map(student => ({
+      'Student Name': student.name,
+      'Registration ID': student.studentId,
+      'Status': attendance[student.id] || 'unmarked'
+    }));
+
+    exportToCsv(dataToExport, `attendance-${courseId}-${new Date().toISOString().split('T')[0]}.csv`);
+  }
+
   return (
     <Card>
       <CardHeader>
@@ -112,7 +131,10 @@ export function AttendanceSheet({
             ))}
         </div>
       </CardContent>
-      <CardFooter>
+      <CardFooter className="justify-end gap-2">
+         <Button variant="outline" onClick={handleExport}>
+          <Download className="mr-2 h-4 w-4" /> Export Today's
+        </Button>
         <Button onClick={handleSave} disabled={isPending || Object.keys(attendance).length !== students.length} className="ml-auto">
           {isPending ? "Saving..." : "Save Attendance"}
         </Button>
