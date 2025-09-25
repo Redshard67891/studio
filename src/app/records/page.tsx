@@ -1,11 +1,22 @@
 import { PageHeader } from "@/components/page-header";
 import { getCourses, getRichAttendanceRecords } from "@/lib/data";
 import { RecordsClientPage } from "./records-client-page";
+import { subDays } from "date-fns";
 
 export const dynamic = "force-dynamic";
 
 export default async function RecordsPage() {
-  const records = await getRichAttendanceRecords();
+  // Fetch initial records for the last 30 days
+  const initialFilters = {
+    courseId: "all",
+    studentQuery: "",
+    status: "all" as const,
+    dateRange: {
+      from: subDays(new Date(), 30),
+      to: new Date(),
+    }
+  }
+  const records = await getRichAttendanceRecords(initialFilters);
   const courses = await getCourses();
 
   return (

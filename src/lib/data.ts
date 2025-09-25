@@ -211,9 +211,43 @@ export const getAttendanceByCourse = async (courseId: string): Promise<Attendanc
   return records.map(doc => fromDoc<AttendanceRecord>(doc));
 };
 
-export const getRichAttendanceRecords = async (): Promise<RichAttendanceRecord[]> => {
+
+type FilterState = {
+  studentQuery?: string;
+  courseId?: string;
+  status?: "all" | "present" | "absent";
+  dateRange?: { from?: Date; to?: Date };
+};
+
+
+export const getRichAttendanceRecords = async (filters: FilterState = {}): Promise<RichAttendanceRecord[]> => {
   const db = await getDb();
-  const records = await db.collection('attendance').aggregate([
+  const pipeline: any[] = [];
+
+  // --- Match Stage for Filtering ---
+  const matchStage: any = {};
+  if (filters.courseId && filters.courseId !== "all") {
+    matchStage.courseId = filters.courseId;
+  }
+  if (filters.status && filters.status !== "all") {
+    matchStage.status = filters.status;
+  }
+  if (filters.dateRange?.from) {
+    matchStage.date = { ...matchStage.date, $gte: filters.dateRange.from.toISOString().split('T')[0] };
+  }
+  if (filters.dateRange?.to) {
+    // Add a day to the 'to' date to make the range inclusive
+    const toDate = new Date(filters.dateRange.to);
+    toDate.setDate(toDate.getDate() + 1);
+    matchStage.date = { ...matchStage.date, $lt: toDate.toISOString().split('T')[0] };
+  }
+  
+  if (Object.keys(matchStage).length > 0) {
+      pipeline.push({ $match: matchStage });
+  }
+
+  // --- Lookup and Unwind Stages ---
+  pipeline.push(
     // Need to convert string IDs to ObjectIds for joining
     {
       $addFields: {
@@ -245,7 +279,24 @@ export const getRichAttendanceRecords = async (): Promise<RichAttendanceRecord[]
     },
     {
       $unwind: { path: "$studentInfo", preserveNullAndEmptyArrays: true }
-    },
+    }
+  );
+
+  // --- Second Match Stage for Text Search on Joined Fields ---
+  if (filters.studentQuery) {
+    const query = filters.studentQuery.toLowerCase();
+    pipeline.push({
+      $match: {
+        $or: [
+          { "studentInfo.name": { $regex: query, $options: 'i' } },
+          { "studentInfo.studentId": { $regex: query, $options: 'i' } }
+        ]
+      }
+    });
+  }
+
+  // --- Project and Sort Stages ---
+  pipeline.push(
     // Shape the final output
     {
       $project: {
@@ -262,7 +313,9 @@ export const getRichAttendanceRecords = async (): Promise<RichAttendanceRecord[]
     {
       $sort: { date: -1, courseTitle: 1, studentName: 1 }
     }
-  ]).toArray();
+  );
+
+  const records = await db.collection('attendance').aggregate(pipeline).toArray();
 
   return records.map(doc => ({
     id: doc._id.toHexString(),

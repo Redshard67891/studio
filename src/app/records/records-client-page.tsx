@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useTransition, useEffect } from "react";
 import type { RichAttendanceRecord, Course } from "@/lib/types";
 import { RecordsTable } from "./records-table";
 import { RecordsFilters, type FilterState } from "./records-filters";
@@ -9,6 +9,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { DateRange } from "react-day-picker";
 import { subDays } from "date-fns";
+import { filterRecordsAction } from "./actions";
+import { useToast } from "@/hooks/use-toast";
 
 const PAGE_SIZE = 10;
 
@@ -20,6 +22,10 @@ export function RecordsClientPage({
   courses: Course[];
 }) {
   const [currentPage, setCurrentPage] = useState(1);
+  const [records, setRecords] = useState<RichAttendanceRecord[]>(initialRecords);
+  const [isPending, startTransition] = useTransition();
+  const { toast } = useToast();
+
   const [filters, setFilters] = useState<FilterState>({
     studentQuery: "",
     courseId: "all",
@@ -30,45 +36,26 @@ export function RecordsClientPage({
     },
   });
 
-  const filteredRecords = useMemo(() => {
-    let records = initialRecords;
+  // Effect to re-fetch data when filters change
+  useEffect(() => {
+    startTransition(async () => {
+      const result = await filterRecordsAction(filters);
+      if (result.success && result.records) {
+        setRecords(result.records);
+        setCurrentPage(1); // Reset to first page on new filter
+      } else {
+        toast({
+            variant: "destructive",
+            title: "Error",
+            description: result.message || "Could not fetch records."
+        })
+      }
+    });
+  }, [filters, toast]);
 
-    if (filters.courseId !== "all") {
-      records = records.filter((r) => r.courseId === filters.courseId);
-    }
-    if (filters.status !== "all") {
-      records = records.filter((r) => r.status === filters.status);
-    }
-    if (filters.studentQuery) {
-      const query = filters.studentQuery.toLowerCase();
-      records = records.filter(
-        (r) =>
-          r.studentName.toLowerCase().includes(query) ||
-          r.studentRegId.toLowerCase().includes(query)
-      );
-    }
-    if (filters.dateRange?.from) {
-      records = records.filter(
-        (r) => new Date(r.date) >= filters.dateRange!.from!
-      );
-    }
-    if (filters.dateRange?.to) {
-        // Add a day to the 'to' date to make the range inclusive
-        const toDate = new Date(filters.dateRange.to);
-        toDate.setDate(toDate.getDate() + 1);
-        records = records.filter((r) => new Date(r.date) < toDate);
-    }
 
-    return records;
-  }, [initialRecords, filters]);
-
-  // Reset to page 1 when filters change
-  useState(() => {
-    setCurrentPage(1);
-  });
-
-  const totalPages = Math.ceil(filteredRecords.length / PAGE_SIZE);
-  const paginatedRecords = filteredRecords.slice(
+  const totalPages = Math.ceil(records.length / PAGE_SIZE);
+  const paginatedRecords = records.slice(
     (currentPage - 1) * PAGE_SIZE,
     currentPage * PAGE_SIZE
   );
@@ -88,9 +75,10 @@ export function RecordsClientPage({
             courses={courses}
             filters={filters}
             onFilterChange={setFilters}
+            isFiltering={isPending}
         />
         <div className="border-t">
-          <RecordsTable data={paginatedRecords} />
+          <RecordsTable data={paginatedRecords} isLoading={isPending} />
         </div>
          <div className="flex items-center justify-end space-x-2 py-4 px-4 border-t">
             <span className="text-sm text-muted-foreground">

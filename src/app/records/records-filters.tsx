@@ -16,7 +16,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
-import { Calendar as CalendarIcon, Search } from "lucide-react";
+import { Calendar as CalendarIcon, Search, CircleDashed } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
 import { DateRange } from "react-day-picker";
@@ -33,12 +33,14 @@ type RecordsFiltersProps = {
   courses: Course[];
   filters: FilterState;
   onFilterChange: (filters: FilterState) => void;
+  isFiltering: boolean;
 };
 
 export function RecordsFilters({
   courses,
   filters,
   onFilterChange,
+  isFiltering,
 }: RecordsFiltersProps) {
   const handleFilterUpdate = (change: Partial<FilterState>) => {
     onFilterChange({ ...filters, ...change });
@@ -48,12 +50,17 @@ export function RecordsFilters({
     <div className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
       {/* Student Search */}
       <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+        {isFiltering ? (
+          <CircleDashed className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground animate-spin" />
+        ) : (
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+        )}
         <Input
           placeholder="Search by student name or ID..."
           className="pl-10"
           value={filters.studentQuery}
           onChange={(e) => handleFilterUpdate({ studentQuery: e.target.value })}
+          disabled={isFiltering}
         />
       </div>
 
@@ -61,6 +68,7 @@ export function RecordsFilters({
       <Select
         value={filters.courseId}
         onValueChange={(value) => handleFilterUpdate({ courseId: value })}
+        disabled={isFiltering}
       >
         <SelectTrigger>
           <SelectValue placeholder="Filter by Course" />
@@ -80,6 +88,7 @@ export function RecordsFilters({
         <PopoverTrigger asChild>
           <Button
             variant={"outline"}
+            disabled={isFiltering}
             className={cn(
               "w-full justify-start text-left font-normal",
               !filters.dateRange && "text-muted-foreground"
@@ -114,6 +123,7 @@ export function RecordsFilters({
       {/* Status Filter */}
       <Select
         value={filters.status}
+        disabled={isFiltering}
         onValueChange={(value) =>
           handleFilterUpdate({ status: value as FilterState["status"] })
         }
