@@ -12,7 +12,7 @@ import { subDays } from "date-fns";
 import { filterRecordsAction } from "./actions";
 import { useToast } from "@/hooks/use-toast";
 
-const PAGE_SIZE = 10;
+const PAGE_SIZE = 5;
 
 export function RecordsClientPage({
   initialRecords,
