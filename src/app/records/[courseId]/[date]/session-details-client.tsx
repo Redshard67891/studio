@@ -11,7 +11,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import type { RichAttendanceRecord } from "@/lib/types";
+import type { RichAttendanceRecord, AttendanceStatus } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -20,7 +20,7 @@ import { Card, CardContent } from "@/components/ui/card";
 
 export function SessionDetailsClient({ records }: { records: RichAttendanceRecord[] }) {
     const [searchQuery, setSearchQuery] = React.useState("");
-    const [statusFilter, setStatusFilter] = React.useState<"all" | "present" | "absent">("all");
+    const [statusFilter, setStatusFilter] = React.useState<"all" | AttendanceStatus>("all");
 
     const filteredData = React.useMemo(() => {
         return records.filter(record => {
@@ -52,6 +52,7 @@ export function SessionDetailsClient({ records }: { records: RichAttendanceRecor
                     <SelectItem value="all">All Statuses</SelectItem>
                     <SelectItem value="present">Present</SelectItem>
                     <SelectItem value="absent">Absent</SelectItem>
+                    <SelectItem value="excused">Excused</SelectItem>
                 </SelectContent>
                 </Select>
             </div>
@@ -77,12 +78,12 @@ export function SessionDetailsClient({ records }: { records: RichAttendanceRecor
                             <TableCell className="text-right">
                             <Badge
                                 className={cn(
-                                    "text-xs",
-                                    record.status === 'present' 
-                                        ? "bg-green-100 text-green-800 hover:bg-green-200 dark:bg-green-900/50 dark:text-green-200" 
-                                        : "bg-red-100 text-red-800 hover:bg-red-200 dark:bg-red-900/50 dark:text-red-200"
+                                    "text-xs capitalize",
+                                    record.status === 'present' && "bg-green-100 text-green-800 hover:bg-green-200 dark:bg-green-900/50 dark:text-green-200",
+                                    record.status === 'absent' && "bg-red-100 text-red-800 hover:bg-red-200 dark:bg-red-900/50 dark:text-red-200",
+                                    record.status === 'excused' && "bg-blue-100 text-blue-800 hover:bg-blue-200 dark:bg-blue-900/50 dark:text-blue-200"
                                 )}
-                                variant={record.status === "present" ? "secondary" : "destructive"}
+                                variant={"secondary"}
                             >
                                 {record.status}
                             </Badge>
@@ -104,4 +105,3 @@ export function SessionDetailsClient({ records }: { records: RichAttendanceRecor
     </Card>
   );
 }
-

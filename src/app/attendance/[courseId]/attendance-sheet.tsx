@@ -1,7 +1,8 @@
+
 "use client";
 
 import { useState, useTransition, useMemo } from "react";
-import type { Student } from "@/lib/types";
+import type { Student, AttendanceStatus } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -12,8 +13,6 @@ import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
 import { Search, Check, X, Download } from "lucide-react";
 import { exportToCsv } from "@/lib/csv";
-
-type AttendanceStatus = "present" | "absent";
 
 export function AttendanceSheet({
   courseId,
@@ -37,9 +36,12 @@ export function AttendanceSheet({
   
   const summary = useMemo(() => {
     const presentCount = Object.values(attendance).filter(s => s === 'present').length;
+    const absentCount = Object.values(attendance).filter(s => s === 'absent').length;
+    const excusedCount = Object.values(attendance).filter(s => s === 'excused').length;
     return {
       present: presentCount,
-      absent: Object.keys(attendance).length - presentCount,
+      absent: absentCount,
+      excused: excusedCount,
     }
   }, [attendance]);
 
@@ -86,7 +88,7 @@ export function AttendanceSheet({
       <CardHeader>
         <CardTitle>Mark Attendance - {new Date().toLocaleDateString()}</CardTitle>
         <CardDescription>
-          Total Students: {students.length} | Present: {summary.present} | Absent: {summary.absent}
+          Total Students: {students.length} | Present: {summary.present} | Absent: {summary.absent} | Excused: {summary.excused}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -124,6 +126,10 @@ export function AttendanceSheet({
                     <div className="flex items-center space-x-2">
                       <RadioGroupItem value="absent" id={`absent-${student.id}`} />
                       <Label htmlFor={`absent-${student.id}`}>Absent</Label>
+                    </div>
+                     <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="excused" id={`excused-${student.id}`} />
+                      <Label htmlFor={`excused-${student.id}`}>Excused</Label>
                     </div>
                   </RadioGroup>
                 </div>

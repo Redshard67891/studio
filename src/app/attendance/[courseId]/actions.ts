@@ -1,11 +1,12 @@
+
 "use server";
 import { revalidatePath } from "next/cache";
 import { saveAttendance } from "@/lib/data";
-import type { AttendanceRecord } from "@/lib/types";
+import type { AttendanceRecord, AttendanceStatus } from "@/lib/types";
 
 export async function saveAttendanceAction(
   courseId: string,
-  attendanceData: Record<string, "present" | "absent">
+  attendanceData: Record<string, AttendanceStatus>
 ) {
   const date = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
   const recordsToSave: Omit<AttendanceRecord, "id">[] = Object.entries(
