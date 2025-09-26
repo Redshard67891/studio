@@ -16,11 +16,15 @@ import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Search } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardFooter } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+
+const PAGE_SIZE = 5;
 
 export function SessionDetailsClient({ records }: { records: RichAttendanceRecord[] }) {
     const [searchQuery, setSearchQuery] = React.useState("");
     const [statusFilter, setStatusFilter] = React.useState<"all" | AttendanceStatus>("all");
+    const [currentPage, setCurrentPage] = React.useState(1);
 
     const filteredData = React.useMemo(() => {
         return records.filter(record => {
@@ -30,6 +34,26 @@ export function SessionDetailsClient({ records }: { records: RichAttendanceRecor
             return searchMatch && statusMatch;
         });
     }, [records, searchQuery, statusFilter]);
+
+    React.useEffect(() => {
+        setCurrentPage(1);
+    }, [searchQuery, statusFilter]);
+
+
+    const totalPages = Math.ceil(filteredData.length / PAGE_SIZE);
+    const paginatedData = filteredData.slice(
+        (currentPage - 1) * PAGE_SIZE,
+        currentPage * PAGE_SIZE
+    );
+
+    const handlePreviousPage = () => {
+        setCurrentPage((prev) => Math.max(prev - 1, 1));
+    };
+
+    const handleNextPage = () => {
+        setCurrentPage((prev) => Math.min(prev + 1, totalPages));
+    };
+
 
   return (
     <Card>
@@ -66,8 +90,8 @@ export function SessionDetailsClient({ records }: { records: RichAttendanceRecor
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                    {filteredData.length > 0 ? (
-                        filteredData.map((record) => (
+                    {paginatedData.length > 0 ? (
+                        paginatedData.map((record) => (
                         <TableRow key={record.id}>
                             <TableCell className="font-medium">
                             <div>{record.studentName}</div>
@@ -102,6 +126,29 @@ export function SessionDetailsClient({ records }: { records: RichAttendanceRecor
                 </Table>
             </div>
         </CardContent>
+        {totalPages > 1 && (
+            <CardFooter className="flex items-center justify-end space-x-2 py-4">
+                 <span className="text-sm text-muted-foreground">
+                    Page {currentPage} of {totalPages}
+                </span>
+                <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handlePreviousPage}
+                    disabled={currentPage === 1}
+                >
+                    Previous
+                </Button>
+                <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleNextPage}
+                    disabled={currentPage === totalPages || totalPages === 0}
+                >
+                    Next
+                </Button>
+            </CardFooter>
+        )}
     </Card>
   );
 }
