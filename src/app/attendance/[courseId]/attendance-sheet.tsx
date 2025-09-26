@@ -140,24 +140,26 @@ export function AttendanceSheet({
 
   const markAll = (status: AttendanceStatus) => {
      const newAttendance: Record<string, AttendanceStatus> = {};
-     // Only mark students in the current view if a search is active
-     const studentsToMark = searchQuery ? filteredStudents : students;
+     // Mark all students, regardless of search or pagination
+     const studentsToMark = students;
      for (const student of studentsToMark) {
         newAttendance[student.id] = status;
      }
-     setAttendance(prev => ({ ...prev, ...newAttendance}));
+     setAttendance(newAttendance);
 
-     // Recalculate summary based on all students
-     const fullAttendance = { ...attendance, ...newAttendance };
+     // Recalculate summary based on the new "mark all" state
      const newSummary = { present: 0, absent: 0, excused: 0, unmarked: 0 };
-     for (const student of students) {
-         const studentStatus = fullAttendance[student.id];
-         if (studentStatus) {
-             newSummary[studentStatus]++;
-         } else {
-             newSummary.unmarked++;
-         }
+     if (status === 'present') {
+        newSummary.present = students.length;
+     } else if (status === 'absent') {
+        newSummary.absent = students.length;
+     } else if (status === 'excused') {
+        newSummary.excused = students.length;
      }
+     
+     // Set unmarked based on what was set
+     newSummary.unmarked = students.length - (newSummary.present + newSummary.absent + newSummary.excused);
+
      setSummary(newSummary);
   }
 
@@ -215,8 +217,8 @@ export function AttendanceSheet({
             />
           </div>
           <div className="flex gap-2 justify-end">
-            <Button variant="outline" onClick={() => markAll('present')}><Check className="mr-2 h-4 w-4" />Mark All Visible Present</Button>
-            <Button variant="outline" onClick={() => markAll('absent')}><X className="mr-2 h-4 w-4" />Mark All Visible Absent</Button>
+            <Button variant="outline" onClick={() => markAll('present')}><Check className="mr-2 h-4 w-4" />Mark All Present</Button>
+            <Button variant="outline" onClick={() => markAll('absent')}><X className="mr-2 h-4 w-4" />Mark All Absent</Button>
           </div>
         </div>
         <Separator />
