@@ -1,19 +1,15 @@
 
 "use client";
 
-import { useState, useMemo, useTransition, useEffect } from "react";
+import { useState, useTransition, useEffect } from "react";
 import type { RichAttendanceRecord, Course } from "@/lib/types";
-import { RecordsTable } from "./records-table";
 import { RecordsFilters, type FilterState } from "./records-filters";
 import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { DateRange } from "react-day-picker";
 import { subDays } from "date-fns";
 import { filterRecordsAction } from "./actions";
 import { useToast } from "@/hooks/use-toast";
 import { exportToCsv } from "@/lib/csv";
-
-const PAGE_SIZE = 5;
+import { GroupedRecordsView } from "./grouped-records-view";
 
 export function RecordsClientPage({
   initialRecords,
@@ -22,15 +18,12 @@ export function RecordsClientPage({
   initialRecords: RichAttendanceRecord[];
   courses: Course[];
 }) {
-  const [currentPage, setCurrentPage] = useState(1);
   const [records, setRecords] = useState<RichAttendanceRecord[]>(initialRecords);
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
 
   const [filters, setFilters] = useState<FilterState>({
-    studentQuery: "",
     courseId: "all",
-    status: "all",
     dateRange: {
       from: subDays(new Date(), 30),
       to: new Date(),
@@ -40,10 +33,15 @@ export function RecordsClientPage({
   // Effect to re-fetch data when filters change
   useEffect(() => {
     startTransition(async () => {
-      const result = await filterRecordsAction(filters);
+      // Create a temporary filter state for the action
+      const filtersForAction = {
+        ...filters,
+        studentQuery: "", // Not used in top-level filter anymore
+        status: "all" as const, // Not used in top-level filter anymore
+      };
+      const result = await filterRecordsAction(filtersForAction);
       if (result.success && result.records) {
         setRecords(result.records);
-        setCurrentPage(1); // Reset to first page on new filter
       } else {
         toast({
             variant: "destructive",
@@ -55,21 +53,15 @@ export function RecordsClientPage({
   }, [filters, toast]);
 
 
-  const totalPages = Math.ceil(records.length / PAGE_SIZE);
-  const paginatedRecords = records.slice(
-    (currentPage - 1) * PAGE_SIZE,
-    currentPage * PAGE_SIZE
-  );
-
-  const handlePreviousPage = () => {
-    setCurrentPage((prev) => Math.max(prev - 1, 1));
-  };
-
-  const handleNextPage = () => {
-    setCurrentPage((prev) => Math.min(prev + 1, totalPages));
-  };
-  
   const handleExport = () => {
+    if (records.length === 0) {
+        toast({
+            variant: "destructive",
+            title: "No Data to Export",
+            description: "There is no data to export for the current filter selection.",
+        });
+        return;
+    }
     const dataToExport = records.map(r => ({
       'Student Name': r.studentName,
       'Registration ID': r.studentRegId,
@@ -91,29 +83,8 @@ export function RecordsClientPage({
             onExport={handleExport}
             isExportDisabled={records.length === 0}
         />
-        <div className="border-t">
-          <RecordsTable data={paginatedRecords} isLoading={isPending} />
-        </div>
-         <div className="flex items-center justify-end space-x-2 py-4 px-4 border-t">
-            <span className="text-sm text-muted-foreground">
-                Page {currentPage} of {totalPages}
-            </span>
-            <Button
-                variant="outline"
-                size="sm"
-                onClick={handlePreviousPage}
-                disabled={currentPage === 1}
-            >
-                Previous
-            </Button>
-            <Button
-                variant="outline"
-                size="sm"
-                onClick={handleNextPage}
-                disabled={currentPage === totalPages || totalPages === 0}
-            >
-                Next
-            </Button>
+        <div className="border-t p-4 md:p-6">
+            <GroupedRecordsView records={records} isLoading={isPending} />
         </div>
       </CardContent>
     </Card>

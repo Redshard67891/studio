@@ -1,8 +1,7 @@
+
 "use client";
 
-import { useState } from "react";
 import type { Course } from "@/lib/types";
-import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -16,16 +15,14 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
-import { Calendar as CalendarIcon, Search, CircleDashed, Download } from "lucide-react";
+import { Calendar as CalendarIcon, Download } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
 import { DateRange } from "react-day-picker";
 import { cn } from "@/lib/utils";
 
 export type FilterState = {
-  studentQuery: string;
   courseId: string;
-  status: "all" | "present" | "absent";
   dateRange: DateRange | undefined;
 };
 
@@ -44,29 +41,14 @@ export function RecordsFilters({
   onFilterChange,
   isFiltering,
   onExport,
-  isExportDisabled,
+isExportDisabled,
 }: RecordsFiltersProps) {
   const handleFilterUpdate = (change: Partial<FilterState>) => {
     onFilterChange({ ...filters, ...change });
   };
 
   return (
-    <div className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-      {/* Student Search */}
-      <div className="relative lg:col-span-1">
-        {isFiltering ? (
-          <CircleDashed className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground animate-spin" />
-        ) : (
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-        )}
-        <Input
-          placeholder="Search by student name or ID..."
-          className="pl-10"
-          value={filters.studentQuery}
-          onChange={(e) => handleFilterUpdate({ studentQuery: e.target.value })}
-          disabled={isFiltering}
-        />
-      </div>
+    <div className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
 
       {/* Course Filter */}
       <Select
@@ -74,7 +56,7 @@ export function RecordsFilters({
         onValueChange={(value) => handleFilterUpdate({ courseId: value })}
         disabled={isFiltering}
       >
-        <SelectTrigger>
+        <SelectTrigger className="lg:col-span-1">
           <SelectValue placeholder="Filter by Course" />
         </SelectTrigger>
         <SelectContent>
@@ -94,7 +76,7 @@ export function RecordsFilters({
             variant={"outline"}
             disabled={isFiltering}
             className={cn(
-              "w-full justify-start text-left font-normal",
+              "w-full justify-start text-left font-normal lg:col-span-2",
               !filters.dateRange && "text-muted-foreground"
             )}
           >
@@ -123,24 +105,6 @@ export function RecordsFilters({
           />
         </PopoverContent>
       </Popover>
-
-      {/* Status Filter */}
-      <Select
-        value={filters.status}
-        disabled={isFiltering}
-        onValueChange={(value) =>
-          handleFilterUpdate({ status: value as FilterState["status"] })
-        }
-      >
-        <SelectTrigger>
-          <SelectValue placeholder="Filter by Status" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">All Statuses</SelectItem>
-          <SelectItem value="present">Present</SelectItem>
-          <SelectItem value="absent">Absent</SelectItem>
-        </SelectContent>
-      </Select>
 
       {/* Export Button */}
       <Button onClick={onExport} disabled={isExportDisabled || isFiltering}>

@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from "react";
@@ -12,74 +13,91 @@ import {
 import { Badge } from "@/components/ui/badge";
 import type { RichAttendanceRecord } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Search } from "lucide-react";
 
-export function RecordsTable({ data, isLoading }: { data: RichAttendanceRecord[], isLoading?: boolean }) {
-  const renderSkeletons = () => (
-    Array.from({ length: 5 }).map((_, i) => (
-      <TableRow key={`skeleton-${i}`}>
-        <TableCell>
-          <Skeleton className="h-4 w-32" />
-          <Skeleton className="h-3 w-24 mt-2" />
-        </TableCell>
-        <TableCell><Skeleton className="h-4 w-40" /></TableCell>
-        <TableCell><Skeleton className="h-4 w-24" /></TableCell>
-        <TableCell className="text-right"><Skeleton className="h-6 w-16 inline-block" /></TableCell>
-      </TableRow>
-    ))
-  );
+export function RecordsTable({ data }: { data: RichAttendanceRecord[] }) {
+    const [searchQuery, setSearchQuery] = React.useState("");
+    const [statusFilter, setStatusFilter] = React.useState<"all" | "present" | "absent">("all");
+
+    const filteredData = React.useMemo(() => {
+        return data.filter(record => {
+            const searchMatch = record.studentName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                                record.studentRegId.toLowerCase().includes(searchQuery.toLowerCase());
+            const statusMatch = statusFilter === "all" || record.status === statusFilter;
+            return searchMatch && statusMatch;
+        });
+    }, [data, searchQuery, statusFilter]);
 
   return (
-    <div className="relative w-full overflow-auto">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Student</TableHead>
-            <TableHead>Course</TableHead>
-            <TableHead>Date</TableHead>
-            <TableHead className="text-right">Status</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {isLoading ? renderSkeletons() : (
-            data.length > 0 ? (
-              data.map((record) => (
-                <TableRow key={record.id}>
-                  <TableCell className="font-medium">
-                    <div>{record.studentName}</div>
-                    <div className="text-xs text-muted-foreground">
-                      {record.studentRegId}
-                    </div>
-                  </TableCell>
-                  <TableCell>{record.courseTitle}</TableCell>
-                  <TableCell>
-                    {new Date(record.date).toLocaleDateString()}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Badge
-                      className={cn(
-                          "text-xs",
-                          record.status === 'present' 
-                              ? "bg-green-100 text-green-800 hover:bg-green-200 dark:bg-green-900/50 dark:text-green-200" 
-                              : "bg-red-100 text-red-800 hover:bg-red-200 dark:bg-red-900/50 dark:text-red-200"
-                      )}
-                      variant={record.status === "present" ? "secondary" : "destructive"}
-                    >
-                      {record.status}
-                    </Badge>
+    <div className="w-full space-y-4">
+      <div className="flex flex-col sm:flex-row gap-4">
+        <div className="relative flex-grow">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+          <Input
+            placeholder="Search students in this session..."
+            className="pl-10"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </div>
+        <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as any)}>
+          <SelectTrigger className="sm:w-[180px]">
+            <SelectValue placeholder="Filter by Status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Statuses</SelectItem>
+            <SelectItem value="present">Present</SelectItem>
+            <SelectItem value="absent">Absent</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="border rounded-lg">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Student</TableHead>
+              <TableHead className="text-right">Status</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {filteredData.length > 0 ? (
+                filteredData.map((record) => (
+                  <TableRow key={record.id}>
+                    <TableCell className="font-medium">
+                      <div>{record.studentName}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {record.studentRegId}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Badge
+                        className={cn(
+                            "text-xs",
+                            record.status === 'present' 
+                                ? "bg-green-100 text-green-800 hover:bg-green-200 dark:bg-green-900/50 dark:text-green-200" 
+                                : "bg-red-100 text-red-800 hover:bg-red-200 dark:bg-red-900/50 dark:text-red-200"
+                        )}
+                        variant={record.status === "present" ? "secondary" : "destructive"}
+                      >
+                        {record.status}
+                      </Badge>
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={2} className="h-24 text-center">
+                    No students found for this filter.
                   </TableCell>
                 </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell colSpan={4} className="h-24 text-center">
-                  No records found.
-                </TableCell>
-              </TableRow>
-            )
-          )}
-        </TableBody>
-      </Table>
+              )
+            }
+          </TableBody>
+        </Table>
+      </div>
     </div>
   );
 }
