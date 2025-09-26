@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useTransition, useMemo } from "react";
+import { useState, useTransition, useMemo, useEffect, memo, useCallback } from "react";
 import type { Student, AttendanceStatus, Course } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
@@ -21,6 +21,51 @@ const STATUS_OPTIONS: { value: AttendanceStatus; label: string }[] = [
     { value: "excused", label: "Excused" },
 ];
 
+type Summary = {
+  present: number;
+  absent: number;
+  excused: number;
+  unmarked: number;
+};
+
+// Memoized StudentRow component
+const StudentRow = memo(function StudentRow({
+  student,
+  status,
+  onStatusChange,
+}: {
+  student: Student;
+  status: AttendanceStatus | undefined;
+  onStatusChange: (studentId: string, newStatus: AttendanceStatus) => void;
+}) {
+  return (
+    <div className="flex items-center justify-between p-2 rounded-md hover:bg-muted/50">
+      <div className="font-medium">{student.name} <span className="text-sm text-muted-foreground">({student.studentId})</span></div>
+      <Select
+        value={status || ""}
+        onValueChange={(value) => onStatusChange(student.id, value as AttendanceStatus)}
+      >
+        <SelectTrigger className="w-[120px]">
+          <SelectValue placeholder="Status" />
+        </SelectTrigger>
+        <SelectContent>
+          {STATUS_OPTIONS.map(opt => (
+            <SelectItem key={opt.value} value={opt.value}>
+              <span className={cn(
+                "capitalize",
+                opt.value === "present" && "text-green-600",
+                opt.value === "absent" && "text-red-600",
+                opt.value === "excused" && "text-blue-600",
+              )}>{opt.label}</span>
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
+  );
+});
+
+
 export function AttendanceSheet({
   course,
   students,
@@ -33,6 +78,14 @@ export function AttendanceSheet({
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
 
+  const initialSummary = {
+    present: 0,
+    absent: 0,
+    excused: 0,
+    unmarked: students.length,
+  };
+  const [summary, setSummary] = useState<Summary>(initialSummary);
+
   const filteredStudents = useMemo(() => {
     return students.filter(
       (student) =>
@@ -41,25 +94,42 @@ export function AttendanceSheet({
     );
   }, [students, searchQuery]);
   
-  const summary = useMemo(() => {
-    const presentCount = Object.values(attendance).filter(s => s === 'present').length;
-    const absentCount = Object.values(attendance).filter(s => s === 'absent').length;
-    const excusedCount = Object.values(attendance).filter(s => s === 'excused').length;
-    return {
-      present: presentCount,
-      absent: absentCount,
-      excused: excusedCount,
-      unmarked: students.length - Object.keys(attendance).length,
-    }
-  }, [attendance, students.length]);
+  const handleStatusChange = useCallback((studentId: string, newStatus: AttendanceStatus) => {
+    const oldStatus = attendance[studentId];
 
+    setAttendance((prev) => ({ ...prev, [studentId]: newStatus }));
+    
+    setSummary(prevSummary => {
+        const newSummary = { ...prevSummary };
+        // If student was previously marked, decrement that status count
+        if (oldStatus) {
+            newSummary[oldStatus]--;
+        } else {
+            // If student was unmarked, decrement unmarked count
+            newSummary.unmarked--;
+        }
+        // Increment the new status count
+        newSummary[newStatus]++;
+        return newSummary;
+    });
 
-  const handleStatusChange = (studentId: string, status: AttendanceStatus) => {
-    setAttendance((prev) => ({ ...prev, [studentId]: status }));
-  };
+  }, [attendance]);
 
   const markAll = (status: AttendanceStatus) => {
-     setAttendance(students.reduce((acc, student) => ({ ...acc, [student.id]: status }), {}));
+     const newAttendance: Record<string, AttendanceStatus> = {};
+     for (const student of students) {
+        newAttendance[student.id] = status;
+     }
+     setAttendance(newAttendance);
+
+     // Directly set the summary
+     if (status === 'present') {
+         setSummary({ present: students.length, absent: 0, excused: 0, unmarked: 0 });
+     } else if (status === 'absent') {
+         setSummary({ present: 0, absent: students.length, excused: 0, unmarked: 0 });
+     } else if (status === 'excused') {
+         setSummary({ present: 0, absent: 0, excused: students.length, unmarked: 0 });
+     }
   }
 
   const handleSave = () => {
@@ -100,7 +170,7 @@ export function AttendanceSheet({
       <CardHeader>
         <CardTitle>Mark Attendance - {new Date().toLocaleDateString()}</CardTitle>
         <CardDescription>
-          Total Students: {students.length} | Present: {summary.present} | Absent: {summary.absent} | Excused: {summary.excused}
+          Total Students: {students.length} | Present: {summary.present} | Absent: {summary.absent} | Excused: {summary.excused} | Unmarked: {summary.unmarked}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -123,31 +193,12 @@ export function AttendanceSheet({
         <Separator />
         <div className="max-h-[50vh] overflow-y-auto pr-2 space-y-2">
             {filteredStudents.map((student) => (
-              <div key={student.id}>
-                <div className="flex items-center justify-between p-2 rounded-md hover:bg-muted/50">
-                  <div className="font-medium">{student.name} <span className="text-sm text-muted-foreground">({student.studentId})</span></div>
-                   <Select
-                    value={attendance[student.id] || ""}
-                    onValueChange={(value) => handleStatusChange(student.id, value as AttendanceStatus)}
-                  >
-                    <SelectTrigger className="w-[120px]">
-                      <SelectValue placeholder="Status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {STATUS_OPTIONS.map(opt => (
-                         <SelectItem key={opt.value} value={opt.value}>
-                           <span className={cn(
-                               "capitalize",
-                               opt.value === "present" && "text-green-600",
-                               opt.value === "absent" && "text-red-600",
-                               opt.value === "excused" && "text-blue-600",
-                           )}>{opt.label}</span>
-                         </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
+              <StudentRow 
+                key={student.id} 
+                student={student} 
+                status={attendance[student.id]} 
+                onStatusChange={handleStatusChange}
+              />
             ))}
         </div>
       </CardContent>
