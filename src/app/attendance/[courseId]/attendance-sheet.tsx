@@ -5,14 +5,20 @@ import { useState, useTransition, useMemo } from "react";
 import type { Student, AttendanceStatus } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { saveAttendanceAction } from "./actions";
 import { useToast } from "@/hooks/use-toast";
 import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
 import { Search, Check, X, Download } from "lucide-react";
 import { exportToCsv } from "@/lib/csv";
+import { cn } from "@/lib/utils";
+
+const STATUS_OPTIONS: { value: AttendanceStatus; label: string }[] = [
+    { value: "present", label: "Present" },
+    { value: "absent", label: "Absent" },
+    { value: "excused", label: "Excused" },
+];
 
 export function AttendanceSheet({
   courseId,
@@ -42,8 +48,9 @@ export function AttendanceSheet({
       present: presentCount,
       absent: absentCount,
       excused: excusedCount,
+      unmarked: students.length - Object.keys(attendance).length,
     }
-  }, [attendance]);
+  }, [attendance, students.length]);
 
 
   const handleStatusChange = (studentId: string, status: AttendanceStatus) => {
@@ -110,28 +117,30 @@ export function AttendanceSheet({
         </div>
         <Separator />
         <div className="max-h-[50vh] overflow-y-auto pr-2 space-y-2">
-            {filteredStudents.map((student, index) => (
+            {filteredStudents.map((student) => (
               <div key={student.id}>
                 <div className="flex items-center justify-between p-2 rounded-md hover:bg-muted/50">
                   <div className="font-medium">{student.name} <span className="text-sm text-muted-foreground">({student.studentId})</span></div>
-                  <RadioGroup
+                   <Select
                     value={attendance[student.id] || ""}
                     onValueChange={(value) => handleStatusChange(student.id, value as AttendanceStatus)}
-                    className="flex items-center gap-4"
                   >
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="present" id={`present-${student.id}`} />
-                      <Label htmlFor={`present-${student.id}`}>Present</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="absent" id={`absent-${student.id}`} />
-                      <Label htmlFor={`absent-${student.id}`}>Absent</Label>
-                    </div>
-                     <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="excused" id={`excused-${student.id}`} />
-                      <Label htmlFor={`excused-${student.id}`}>Excused</Label>
-                    </div>
-                  </RadioGroup>
+                    <SelectTrigger className="w-[120px]">
+                      <SelectValue placeholder="Status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {STATUS_OPTIONS.map(opt => (
+                         <SelectItem key={opt.value} value={opt.value}>
+                           <span className={cn(
+                               "capitalize",
+                               opt.value === "present" && "text-green-600",
+                               opt.value === "absent" && "text-red-600",
+                               opt.value === "excused" && "text-blue-600",
+                           )}>{opt.label}</span>
+                         </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
             ))}
