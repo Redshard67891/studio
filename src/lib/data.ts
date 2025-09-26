@@ -216,28 +216,36 @@ export const getAttendanceByCourse = async (courseId: string): Promise<Attendanc
 export const getCoursesWithAttendance = async (): Promise<Course[]> => {
     const db = await getDb();
     const courseIdsWithAttendance = await db.collection('attendance').distinct('courseId');
-    const courseObjectIds = courseIdsWithAttendance.map(id => new ObjectId(id));
+    const courseObjectIds = courseIdsWithAttendance.map(id => {
+      try {
+        return new ObjectId(id)
+      } catch {
+        return null;
+      }
+    }).filter(id => id !== null);
 
     const courses = await db.collection('courses').find({
-        _id: { $in: courseObjectIds }
+        _id: { $in: courseObjectIds as ObjectId[] }
     }).sort({ title: 1 }).toArray();
 
     return courses.map(doc => fromDoc<Course>(doc));
 }
 
 
-export const getAttendanceDatesForCourse = async (courseId: string) => {
+export const getAttendanceSessionsForCourse = async (courseId: string): Promise<string[]> => {
     const db = await getDb();
-    const dates = await db.collection('attendance').distinct('date', { courseId });
-    return dates.sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
+    // Use distinct on the 'timestamp' field to get unique session identifiers
+    const timestamps = await db.collection('attendance').distinct('timestamp', { courseId });
+    // Sort timestamps in descending order (most recent first)
+    return timestamps.sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
 };
 
 
-export const getRecordsForSession = async (courseId: string, date: string): Promise<RichAttendanceRecord[]> => {
+export const getRecordsForSession = async (courseId: string, timestamp: string): Promise<RichAttendanceRecord[]> => {
     const db = await getDb();
     const pipeline = [
         {
-            $match: { courseId, date }
+            $match: { courseId, timestamp } // Match by the unique timestamp
         },
         {
             $addFields: {
@@ -259,6 +267,9 @@ export const getRecordsForSession = async (courseId: string, date: string): Prom
             $project: {
                 _id: 1,
                 status: 1,
+                date: 1,
+                timestamp: 1,
+                studentId: 1,
                 studentName: { $ifNull: [ "$studentInfo.name", "Unknown Student" ] },
                 studentRegId: { $ifNull: [ "$studentInfo.studentId", "N/A" ] }
             }
@@ -274,7 +285,8 @@ export const getRecordsForSession = async (courseId: string, date: string): Prom
         id: doc._id.toHexString(),
         courseId,
         studentId: doc.studentId,
-        date,
+        date: doc.date,
+        timestamp: doc.timestamp,
         status: doc.status,
         studentName: doc.studentName,
         studentRegId: doc.studentRegId,
@@ -285,15 +297,19 @@ export const getRecordsForSession = async (courseId: string, date: string): Prom
 
 export const saveAttendance = async (records: Omit<AttendanceRecord, "id">[]): Promise<void> => {
   const db = await getDb();
+  
+  // The filter now needs to be specific enough to not overwrite existing records from the same day
+  // Since we save all records for a session at once with the same timestamp, upserting is still safe
+  // for a single session submission.
   const bulkOps = records.map(record => ({
     updateOne: {
       filter: { 
         courseId: record.courseId, 
         studentId: record.studentId, 
-        date: record.date 
+        timestamp: record.timestamp // Use the unique timestamp
       },
-      update: { $set: { status: record.status } },
-      upsert: true, // This will insert the document if it's new
+      update: { $set: record }, // Set the whole record
+      upsert: true,
     }
   }));
 
@@ -301,6 +317,7 @@ export const saveAttendance = async (records: Omit<AttendanceRecord, "id">[]): P
     await db.collection("attendance").bulkWrite(bulkOps);
   }
 };
+
 
 // Deprecated - no longer used by the new records flow
 export const getRichAttendanceRecords = async (): Promise<RichAttendanceRecord[]> => {

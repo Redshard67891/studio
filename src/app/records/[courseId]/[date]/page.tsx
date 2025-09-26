@@ -9,6 +9,7 @@ import { SessionDetailsClient } from "./session-details-client";
 
 export const dynamic = 'force-dynamic';
 
+// The param is now a full ISO timestamp, but we'll keep the name `date` for simplicity
 export default async function SessionDetailsPage({
   params,
 }: {
@@ -19,28 +20,36 @@ export default async function SessionDetailsPage({
     notFound();
   }
   
-  // Validate date format
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(params.date)) {
+  // The 'date' param is now the URL-decoded timestamp
+  const timestamp = decodeURIComponent(params.date);
+  
+  try {
+    // Validate if the timestamp is a valid date
+    if (isNaN(new Date(timestamp).getTime())) {
+      notFound();
+    }
+  } catch (e) {
     notFound();
   }
 
-  const records = await getRecordsForSession(params.courseId, params.date);
+  const records = await getRecordsForSession(params.courseId, timestamp);
 
-  const formattedDate = new Date(params.date).toLocaleDateString(undefined, {
-    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC'
+  const formattedDate = new Date(timestamp).toLocaleString(undefined, {
+    dateStyle: 'full',
+    timeStyle: 'short',
   });
 
   return (
     <div className="flex flex-col h-full">
       <PageHeader
-        title={`${course.title} - ${formattedDate}`}
-        description={`Attendance records for the session on ${formattedDate}.`}
+        title={`${course.title}`}
+        description={`Attendance for ${formattedDate}`}
         actions={
           <div className="flex items-center gap-2">
              <Button asChild variant="outline">
                 <Link href={`/records/${course.id}`}>
                     <ArrowLeft className="mr-2 h-4 w-4" />
-                    Back to Dates
+                    Back to Sessions
                 </Link>
             </Button>
           </div>

@@ -8,20 +8,24 @@ export async function saveAttendanceAction(
   courseId: string,
   attendanceData: Record<string, AttendanceStatus>
 ) {
-  const date = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
+  const now = new Date();
+  const date = now.toISOString().split("T")[0]; // YYYY-MM-DD
+  const timestamp = now.toISOString();
+
   const recordsToSave: Omit<AttendanceRecord, "id">[] = Object.entries(
     attendanceData
   ).map(([studentId, status]) => ({
     courseId,
     studentId,
     date,
+    timestamp,
     status,
   }));
 
   try {
     await saveAttendance(recordsToSave);
-    // Revalidating the summary page is important
-    revalidatePath(`/attendance/${courseId}`);
+    // Revalidating the course-specific records page is now important
+    revalidatePath(`/records/${courseId}`);
     return {
       success: true,
       message: "Attendance saved successfully!",
