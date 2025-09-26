@@ -1,3 +1,4 @@
+
 import clientPromise from "./mongodb";
 import type { Student, Course, AttendanceRecord, Enrollment, RichAttendanceRecord } from "./types";
 import { ObjectId } from "mongodb";
@@ -212,122 +213,75 @@ export const getAttendanceByCourse = async (courseId: string): Promise<Attendanc
 };
 
 
-type FilterState = {
-  studentQuery?: string;
-  courseId?: string;
-  status?: "all" | "present" | "absent";
-  dateRange?: { from?: Date; to?: Date };
+export const getCoursesWithAttendance = async (): Promise<Course[]> => {
+    const db = await getDb();
+    const courseIdsWithAttendance = await db.collection('attendance').distinct('courseId');
+    const courseObjectIds = courseIdsWithAttendance.map(id => new ObjectId(id));
+
+    const courses = await db.collection('courses').find({
+        _id: { $in: courseObjectIds }
+    }).sort({ title: 1 }).toArray();
+
+    return courses.map(doc => fromDoc<Course>(doc));
+}
+
+
+export const getAttendanceDatesForCourse = async (courseId: string) => {
+    const db = await getDb();
+    const dates = await db.collection('attendance').distinct('date', { courseId });
+    return dates.sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
 };
 
 
-export const getRichAttendanceRecords = async (filters: FilterState = {}): Promise<RichAttendanceRecord[]> => {
-  const db = await getDb();
-  const pipeline: any[] = [];
+export const getRecordsForSession = async (courseId: string, date: string): Promise<RichAttendanceRecord[]> => {
+    const db = await getDb();
+    const pipeline = [
+        {
+            $match: { courseId, date }
+        },
+        {
+            $addFields: {
+                studentObjectId: { $toObjectId: "$studentId" }
+            }
+        },
+        {
+            $lookup: {
+                from: 'students',
+                localField: 'studentObjectId',
+                foreignField: '_id',
+                as: 'studentInfo'
+            }
+        },
+        {
+            $unwind: { path: "$studentInfo", preserveNullAndEmptyArrays: true }
+        },
+        {
+            $project: {
+                _id: 1,
+                status: 1,
+                studentName: { $ifNull: [ "$studentInfo.name", "Unknown Student" ] },
+                studentRegId: { $ifNull: [ "$studentInfo.studentId", "N/A" ] }
+            }
+        },
+        {
+            $sort: { "studentName": 1 }
+        }
+    ];
 
-  // --- Match Stage for Filtering ---
-  const matchStage: any = {};
-  if (filters.courseId && filters.courseId !== "all") {
-    matchStage.courseId = filters.courseId;
-  }
-  if (filters.status && filters.status !== "all") {
-    matchStage.status = filters.status;
-  }
-  if (filters.dateRange?.from) {
-    matchStage.date = { ...matchStage.date, $gte: filters.dateRange.from.toISOString().split('T')[0] };
-  }
-  if (filters.dateRange?.to) {
-    // Add a day to the 'to' date to make the range inclusive
-    const toDate = new Date(filters.dateRange.to);
-    toDate.setDate(toDate.getDate() + 1);
-    matchStage.date = { ...matchStage.date, $lt: toDate.toISOString().split('T')[0] };
-  }
-  
-  if (Object.keys(matchStage).length > 0) {
-      pipeline.push({ $match: matchStage });
-  }
+    const records = await db.collection('attendance').aggregate(pipeline).toArray();
 
-  // --- Lookup and Unwind Stages ---
-  pipeline.push(
-    // Need to convert string IDs to ObjectIds for joining
-    {
-      $addFields: {
-        courseObjectId: { $toObjectId: "$courseId" },
-        studentObjectId: { $toObjectId: "$studentId" }
-      }
-    },
-    // Join with courses collection
-    {
-      $lookup: {
-        from: 'courses',
-        localField: 'courseObjectId',
-        foreignField: '_id',
-        as: 'courseInfo'
-      }
-    },
-    // Join with students collection
-    {
-      $lookup: {
-        from: 'students',
-        localField: 'studentObjectId',
-        foreignField: '_id',
-        as: 'studentInfo'
-      }
-    },
-    // Deconstruct the arrays from the lookups
-    {
-      $unwind: { path: "$courseInfo", preserveNullAndEmptyArrays: true }
-    },
-    {
-      $unwind: { path: "$studentInfo", preserveNullAndEmptyArrays: true }
-    }
-  );
+    return records.map(doc => ({
+        id: doc._id.toHexString(),
+        courseId,
+        studentId: doc.studentId,
+        date,
+        status: doc.status,
+        studentName: doc.studentName,
+        studentRegId: doc.studentRegId,
+        courseTitle: '', // Not needed for this specific query
+    }));
+};
 
-  // --- Second Match Stage for Text Search on Joined Fields ---
-  if (filters.studentQuery) {
-    const query = filters.studentQuery.toLowerCase();
-    pipeline.push({
-      $match: {
-        $or: [
-          { "studentInfo.name": { $regex: query, $options: 'i' } },
-          { "studentInfo.studentId": { $regex: query, $options: 'i' } }
-        ]
-      }
-    });
-  }
-
-  // --- Project and Sort Stages ---
-  pipeline.push(
-    // Shape the final output
-    {
-      $project: {
-        _id: 1,
-        courseId: 1,
-        studentId: 1,
-        date: 1,
-        status: 1,
-        studentName: { $ifNull: [ "$studentInfo.name", "Unknown Student" ] },
-        studentRegId: { $ifNull: [ "$studentInfo.studentId", "N/A" ] },
-        courseTitle: { $ifNull: [ "$courseInfo.title", "Unknown Course" ] }
-      }
-    },
-    {
-      $sort: { date: -1, courseTitle: 1, studentName: 1 }
-    }
-  );
-
-  const records = await db.collection('attendance').aggregate(pipeline).toArray();
-
-  return records.map(doc => ({
-    id: doc._id.toHexString(),
-    courseId: doc.courseId,
-    studentId: doc.studentId,
-    date: doc.date,
-    status: doc.status,
-    studentName: doc.studentName,
-    studentRegId: doc.studentRegId,
-    courseTitle: doc.courseTitle
-  }));
-}
 
 export const saveAttendance = async (records: Omit<AttendanceRecord, "id">[]): Promise<void> => {
   const db = await getDb();
@@ -347,3 +301,8 @@ export const saveAttendance = async (records: Omit<AttendanceRecord, "id">[]): P
     await db.collection("attendance").bulkWrite(bulkOps);
   }
 };
+
+// Deprecated - no longer used by the new records flow
+export const getRichAttendanceRecords = async (): Promise<RichAttendanceRecord[]> => {
+    return [];
+}
