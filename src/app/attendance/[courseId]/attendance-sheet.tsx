@@ -28,6 +28,8 @@ type Summary = {
   unmarked: number;
 };
 
+const PAGE_SIZE = 20;
+
 // Memoized StudentRow component
 const StudentRow = memo(function StudentRow({
   student,
@@ -75,6 +77,7 @@ export function AttendanceSheet({
 }) {
   const [attendance, setAttendance] = useState<Record<string, AttendanceStatus>>({});
   const [searchQuery, setSearchQuery] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
 
@@ -94,6 +97,26 @@ export function AttendanceSheet({
     );
   }, [students, searchQuery]);
   
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery]);
+
+  const totalPages = Math.ceil(filteredStudents.length / PAGE_SIZE);
+  const paginatedStudents = useMemo(() => filteredStudents.slice(
+    (currentPage - 1) * PAGE_SIZE,
+    currentPage * PAGE_SIZE
+  ), [filteredStudents, currentPage]);
+
+
+  const handlePreviousPage = () => {
+    setCurrentPage((prev) => Math.max(prev - 1, 1));
+  };
+
+  const handleNextPage = () => {
+    setCurrentPage((prev) => Math.min(prev + 1, totalPages));
+  };
+
+
   const handleStatusChange = useCallback((studentId: string, newStatus: AttendanceStatus) => {
     const oldStatus = attendance[studentId];
 
@@ -117,19 +140,25 @@ export function AttendanceSheet({
 
   const markAll = (status: AttendanceStatus) => {
      const newAttendance: Record<string, AttendanceStatus> = {};
-     for (const student of students) {
+     // Only mark students in the current view if a search is active
+     const studentsToMark = searchQuery ? filteredStudents : students;
+     for (const student of studentsToMark) {
         newAttendance[student.id] = status;
      }
-     setAttendance(newAttendance);
+     setAttendance(prev => ({ ...prev, ...newAttendance}));
 
-     // Directly set the summary
-     if (status === 'present') {
-         setSummary({ present: students.length, absent: 0, excused: 0, unmarked: 0 });
-     } else if (status === 'absent') {
-         setSummary({ present: 0, absent: students.length, excused: 0, unmarked: 0 });
-     } else if (status === 'excused') {
-         setSummary({ present: 0, absent: 0, excused: students.length, unmarked: 0 });
+     // Recalculate summary based on all students
+     const fullAttendance = { ...attendance, ...newAttendance };
+     const newSummary = { present: 0, absent: 0, excused: 0, unmarked: 0 };
+     for (const student of students) {
+         const studentStatus = fullAttendance[student.id];
+         if (studentStatus) {
+             newSummary[studentStatus]++;
+         } else {
+             newSummary.unmarked++;
+         }
      }
+     setSummary(newSummary);
   }
 
   const handleSave = () => {
@@ -186,13 +215,13 @@ export function AttendanceSheet({
             />
           </div>
           <div className="flex gap-2 justify-end">
-            <Button variant="outline" onClick={() => markAll('present')}><Check className="mr-2 h-4 w-4" />Mark All Present</Button>
-            <Button variant="outline" onClick={() => markAll('absent')}><X className="mr-2 h-4 w-4" />Mark All Absent</Button>
+            <Button variant="outline" onClick={() => markAll('present')}><Check className="mr-2 h-4 w-4" />Mark All Visible Present</Button>
+            <Button variant="outline" onClick={() => markAll('absent')}><X className="mr-2 h-4 w-4" />Mark All Visible Absent</Button>
           </div>
         </div>
         <Separator />
         <div className="max-h-[50vh] overflow-y-auto pr-2 space-y-2">
-            {filteredStudents.map((student) => (
+            {paginatedStudents.map((student) => (
               <StudentRow 
                 key={student.id} 
                 student={student} 
@@ -201,12 +230,35 @@ export function AttendanceSheet({
               />
             ))}
         </div>
+        {totalPages > 1 && (
+            <div className="flex items-center justify-end space-x-2 pt-4 border-t">
+                 <span className="text-sm text-muted-foreground">
+                    Page {currentPage} of {totalPages}
+                </span>
+                <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handlePreviousPage}
+                    disabled={currentPage === 1}
+                >
+                    Previous
+                </Button>
+                <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleNextPage}
+                    disabled={currentPage === totalPages || totalPages === 0}
+                >
+                    Next
+                </Button>
+            </div>
+        )}
       </CardContent>
       <CardFooter className="justify-end gap-2">
          <Button variant="outline" onClick={handleExport}>
           <Download className="mr-2 h-4 w-4" /> Export Today's
         </Button>
-        <Button onClick={handleSave} disabled={isPending || Object.keys(attendance).length !== students.length} className="ml-auto">
+        <Button onClick={handleSave} disabled={isPending || Object.keys(attendance).length < students.length} className="ml-auto">
           {isPending ? "Saving..." : "Save Attendance"}
         </Button>
       </CardFooter>
