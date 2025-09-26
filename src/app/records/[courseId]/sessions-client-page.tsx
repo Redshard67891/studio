@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   Card,
   CardHeader,
@@ -15,6 +15,37 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import { format, startOfDay } from "date-fns";
 import { cn } from "@/lib/utils";
+
+function SessionCard({ courseId, timestamp }: { courseId: string; timestamp: string }) {
+  const [formattedDate, setFormattedDate] = useState("");
+
+  useEffect(() => {
+    // This code runs only on the client, after hydration
+    setFormattedDate(
+      new Date(timestamp).toLocaleString(undefined, {
+        dateStyle: "medium",
+        timeStyle: "short",
+      })
+    );
+  }, [timestamp]);
+
+  return (
+    <Link
+      href={`/records/${courseId}/${encodeURIComponent(timestamp)}`}
+      className="block"
+    >
+      <Card className="cursor-pointer hover:bg-muted/50 transition-colors">
+        <CardHeader className="flex flex-row items-center justify-between p-4">
+          <CardTitle className="text-lg">
+            {formattedDate || <span className="text-muted-foreground">Loading date...</span>}
+          </CardTitle>
+          <ChevronRight className="h-5 w-5 text-muted-foreground" />
+        </CardHeader>
+      </Card>
+    </Link>
+  );
+}
+
 
 export function SessionsClientPage({
   courseId,
@@ -94,27 +125,10 @@ export function SessionsClientPage({
       ) : (
         <div className="space-y-4">
           {filteredSessions.map((timestamp) => (
-            <Link
-              key={timestamp}
-              href={`/records/${courseId}/${encodeURIComponent(timestamp)}`}
-              className="block"
-            >
-              <Card className="cursor-pointer hover:bg-muted/50 transition-colors">
-                <CardHeader className="flex flex-row items-center justify-between p-4">
-                  <CardTitle className="text-lg">
-                    {new Date(timestamp).toLocaleString(undefined, {
-                      dateStyle: "medium",
-                      timeStyle: "short",
-                    })}
-                  </CardTitle>
-                  <ChevronRight className="h-5 w-5 text-muted-foreground" />
-                </CardHeader>
-              </Card>
-            </Link>
+             <SessionCard key={timestamp} courseId={courseId} timestamp={timestamp} />
           ))}
         </div>
       )}
     </div>
   );
 }
-
