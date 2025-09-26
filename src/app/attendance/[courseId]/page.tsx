@@ -68,7 +68,7 @@ export default async function CourseAttendancePage({
         }
       />
       <div className="flex-1 p-6 sm:p-8">
-        <AttendanceSheet courseId={course.id} students={students} />
+        <AttendanceSheet course={course} students={students} />
       </div>
     </div>
   );

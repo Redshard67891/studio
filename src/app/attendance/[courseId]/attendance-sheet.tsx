@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useTransition, useMemo } from "react";
-import type { Student, AttendanceStatus } from "@/lib/types";
+import type { Student, AttendanceStatus, Course } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Search, Check, X, Download } from "lucide-react";
 import { exportToCsv } from "@/lib/csv";
 import { cn } from "@/lib/utils";
+import { format } from "date-fns";
 
 const STATUS_OPTIONS: { value: AttendanceStatus; label: string }[] = [
     { value: "present", label: "Present" },
@@ -21,10 +22,10 @@ const STATUS_OPTIONS: { value: AttendanceStatus; label: string }[] = [
 ];
 
 export function AttendanceSheet({
-  courseId,
+  course,
   students,
 }: {
-  courseId: string;
+  course: Course;
   students: Student[];
 }) {
   const [attendance, setAttendance] = useState<Record<string, AttendanceStatus>>({});
@@ -63,7 +64,7 @@ export function AttendanceSheet({
 
   const handleSave = () => {
     startTransition(async () => {
-      const result = await saveAttendanceAction(courseId, attendance);
+      const result = await saveAttendanceAction(course.id, attendance);
       if (result.success) {
         toast({ title: "Success", description: result.message, className: "bg-accent text-accent-foreground" });
       } else {
@@ -87,7 +88,11 @@ export function AttendanceSheet({
       'Status': attendance[student.id] || 'unmarked'
     }));
 
-    exportToCsv(dataToExport, `attendance-${courseId}-${new Date().toISOString().split('T')[0]}.csv`);
+    const now = new Date();
+    const formattedDateTime = format(now, "yyyy-MM-dd_HH-mm-ss");
+    const filename = `${course.title.replace(/ /g, "_")}-${formattedDateTime}.csv`;
+
+    exportToCsv(dataToExport, filename);
   }
 
   return (
