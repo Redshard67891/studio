@@ -28,7 +28,7 @@ type Summary = {
   unmarked: number;
 };
 
-const PAGE_SIZE = 20;
+const PAGE_SIZE = 5;
 
 // Memoized StudentRow component
 const StudentRow = memo(function StudentRow({
