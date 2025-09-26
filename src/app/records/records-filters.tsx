@@ -31,8 +31,6 @@ type RecordsFiltersProps = {
   filters: FilterState;
   onFilterChange: (filters: FilterState) => void;
   isFiltering: boolean;
-  onExport: () => void;
-  isExportDisabled: boolean;
 };
 
 export function RecordsFilters({
@@ -40,15 +38,13 @@ export function RecordsFilters({
   filters,
   onFilterChange,
   isFiltering,
-  onExport,
-isExportDisabled,
 }: RecordsFiltersProps) {
   const handleFilterUpdate = (change: Partial<FilterState>) => {
     onFilterChange({ ...filters, ...change });
   };
 
   return (
-    <div className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+    <div className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
 
       {/* Course Filter */}
       <Select
@@ -105,12 +101,6 @@ isExportDisabled,
           />
         </PopoverContent>
       </Popover>
-
-      {/* Export Button */}
-      <Button onClick={onExport} disabled={isExportDisabled || isFiltering}>
-        <Download className="mr-2 h-4 w-4" />
-        Export CSV
-      </Button>
     </div>
   );
 }

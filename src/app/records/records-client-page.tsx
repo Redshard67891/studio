@@ -80,8 +80,6 @@ export function RecordsClientPage({
             filters={filters}
             onFilterChange={setFilters}
             isFiltering={isPending}
-            onExport={handleExport}
-            isExportDisabled={records.length === 0}
         />
         <div className="border-t p-4 md:p-6">
             <GroupedRecordsView records={records} isLoading={isPending} />
