@@ -79,7 +79,13 @@ export function AttendanceSheet({
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [isPending, startTransition] = useTransition();
+  const [currentDate, setCurrentDate] = useState("");
   const { toast } = useToast();
+
+  useEffect(() => {
+    // Set date only on client to avoid hydration mismatch
+    setCurrentDate(new Date().toLocaleDateString());
+  }, []);
 
   const initialSummary = {
     present: 0,
@@ -199,7 +205,7 @@ export function AttendanceSheet({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Mark Attendance - {new Date().toLocaleDateString()}</CardTitle>
+        <CardTitle>Mark Attendance - {currentDate}</CardTitle>
         <CardDescription>
           Total Students: {students.length} | Present: {summary.present} | Absent: {summary.absent} | Excused: {summary.excused} | Unmarked: {summary.unmarked}
         </CardDescription>
