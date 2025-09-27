@@ -81,7 +81,7 @@ export function BulkAddStudentsTable() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-[250px]">Registration Number</TableHead>
+              <TableHead className="w-[40%] sm:w-[35%]">Registration Number</TableHead>
               <TableHead>Full Name</TableHead>
               <TableHead className="w-[50px]"></TableHead>
             </TableRow>
