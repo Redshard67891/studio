@@ -2,10 +2,11 @@ import type { Metadata } from "next";
 import { Toaster } from "@/components/ui/toaster";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import AppSidebar from "@/components/layout/app-sidebar";
+import { ThemeProvider } from "@/components/layout/theme-provider";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "AttendEase",
+  title: "PresenSys",
   description:
     "An attendance app for attendance record management in university departments",
 };
@@ -30,13 +31,22 @@ export default function RootLayout({
         />
       </head>
       <body className="font-body antialiased">
-        <SidebarProvider defaultOpen>
-          <div className="flex min-h-screen w-full">
-            <AppSidebar />
-            <main className="flex flex-1 flex-col bg-background">{children}</main>
-          </div>
-          <Toaster />
-        </SidebarProvider>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <SidebarProvider defaultOpen>
+            <div className="flex min-h-screen w-full">
+              <AppSidebar />
+              <main className="flex flex-1 flex-col bg-background">
+                {children}
+              </main>
+            </div>
+            <Toaster />
+          </SidebarProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

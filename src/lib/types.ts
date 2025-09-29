@@ -1,3 +1,4 @@
+
 export type Student = {
   id: string;
   studentId: string;
@@ -12,17 +13,20 @@ export type Course = {
 };
 
 export type Enrollment = {
-  id: string;
+  id:string;
   courseId: string;
   studentId: string;
 };
+
+export type AttendanceStatus = "present" | "absent" | "excused";
 
 export type AttendanceRecord = {
   id: string;
   courseId: string;
   studentId: string;
   date: string; // YYYY-MM-DD
-  status: "present" | "absent";
+  timestamp: string; // ISO 8601 timestamp
+  status: AttendanceStatus;
 };
 
 export type RichAttendanceRecord = AttendanceRecord & {

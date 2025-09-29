@@ -7,17 +7,18 @@ import {
 } from "@/components/ui/card";
 import { Users, Book, BarChart } from "lucide-react";
 import Link from "next/link";
-import { getStudents, getCourses } from "@/lib/data";
+import { getStudents, getCourses, getOverallAttendanceRateForLastWeek } from "@/lib/data";
 
 export default async function DashboardPage() {
   const students = await getStudents();
   const courses = await getCourses();
+  const attendanceRate = await getOverallAttendanceRateForLastWeek();
 
   return (
     <div className="flex flex-col h-full">
       <PageHeader
         title="Dashboard"
-        description="Welcome to AttendEase. Here's a quick overview."
+        description="Welcome to PresenSys. Here's a quick overview."
       />
       <div className="p-6 sm:p-8 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         <Card>
@@ -62,7 +63,7 @@ export default async function DashboardPage() {
             <BarChart className="h-5 w-5 text-primary" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">87.5%</div>
+            <div className="text-2xl font-bold">{attendanceRate.toFixed(1)}%</div>
             <p className="text-xs text-muted-foreground">
               Average attendance rate this week
             </p>

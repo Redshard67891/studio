@@ -3,7 +3,7 @@ import { getCourseById, getEnrolledStudents } from "@/lib/data";
 import { AttendanceSheet } from "./attendance-sheet";
 import { notFound } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { BarChart2 } from "lucide-react";
+import { ArrowLeft, BarChart2, Download } from "lucide-react";
 import Link from "next/link";
 import {
   Sheet,
@@ -39,28 +39,36 @@ export default async function CourseAttendancePage({
         title={course.title}
         description={`Manage attendance for ${course.code}`}
         actions={
-          <Sheet>
-            <SheetTrigger asChild>
-               <Button variant="outline">
-                <BarChart2 className="mr-2 h-4 w-4" /> View Summary
-              </Button>
-            </SheetTrigger>
-            <SheetContent className="w-full sm:max-w-2xl overflow-y-auto">
-              <SheetHeader>
-                <SheetTitle>Attendance Summary</SheetTitle>
-                <SheetDescription>
-                  Review the overall attendance for {course.title}.
-                </SheetDescription>
-              </SheetHeader>
-               <div className="mt-4">
-                <AttendanceSummary students={students} records={attendanceRecords} />
-              </div>
-            </SheetContent>
-          </Sheet>
+          <div className="flex items-center gap-2">
+            <Sheet>
+              <SheetTrigger asChild>
+                 <Button variant="outline">
+                  <BarChart2 className="mr-2 h-4 w-4" /> View Summary
+                </Button>
+              </SheetTrigger>
+              <SheetContent className="w-full sm:max-w-2xl overflow-y-auto">
+                <SheetHeader>
+                  <SheetTitle>Attendance Summary</SheetTitle>
+                  <SheetDescription>
+                    Review the overall attendance for {course.title}.
+                  </SheetDescription>
+                </SheetHeader>
+                 <div className="mt-4">
+                  <AttendanceSummary students={students} records={attendanceRecords} />
+                </div>
+              </SheetContent>
+            </Sheet>
+             <Button asChild variant="outline">
+                <Link href="/attendance">
+                    <ArrowLeft className="mr-2 h-4 w-4" />
+                    Back to Courses
+                </Link>
+            </Button>
+          </div>
         }
       />
       <div className="flex-1 p-6 sm:p-8">
-        <AttendanceSheet courseId={course.id} students={students} />
+        <AttendanceSheet course={course} students={students} />
       </div>
     </div>
   );

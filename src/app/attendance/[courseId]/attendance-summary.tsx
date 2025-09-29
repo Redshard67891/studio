@@ -1,3 +1,4 @@
+
 import type { Student, AttendanceRecord } from "@/lib/types";
 import {
   Table,
@@ -13,6 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 type Summary = {
   present: number;
   absent: number;
+  excused: number;
 };
 
 export function AttendanceSummary({
@@ -28,9 +30,10 @@ export function AttendanceSummary({
       (acc, record) => {
         if (record.status === "present") acc.present++;
         if (record.status === "absent") acc.absent++;
+        if (record.status === "excused") acc.excused++;
         return acc;
       },
-      { present: 0, absent: 0 }
+      { present: 0, absent: 0, excused: 0 }
     );
     return {
       ...student,
@@ -51,6 +54,7 @@ export function AttendanceSummary({
                 <TableHead>Student Name</TableHead>
                 <TableHead className="text-center">Present</TableHead>
                 <TableHead className="text-center">Absent</TableHead>
+                <TableHead className="text-center">Excused</TableHead>
                 <TableHead className="text-right">Attendance Rate</TableHead>
               </TableRow>
             </TableHeader>
@@ -66,6 +70,9 @@ export function AttendanceSummary({
                     </TableCell>
                     <TableCell className="text-center">
                         <Badge variant="destructive">{data.summary.absent}</Badge>
+                    </TableCell>
+                     <TableCell className="text-center">
+                        <Badge variant="secondary" className="bg-blue-100 text-blue-800 hover:bg-blue-200 dark:bg-blue-900/50 dark:text-blue-200 dark:hover:bg-blue-900/75">{data.summary.excused}</Badge>
                     </TableCell>
                     <TableCell className="text-right font-mono">{rate.toFixed(1)}%</TableCell>
                   </TableRow>

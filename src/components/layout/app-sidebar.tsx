@@ -16,11 +16,11 @@ import {
   Users,
   Book,
   ClipboardCheck,
-  Settings,
   LayoutDashboard,
   Archive,
 } from "lucide-react";
 import { useSidebar } from "../ui/sidebar";
+import { ThemeToggle } from "./theme-toggle";
 
 const AppSidebar = () => {
   const pathname = usePathname();
@@ -38,7 +38,7 @@ const AppSidebar = () => {
         <Link href="/" className="flex items-center gap-2.5">
           <GraduationCap className="w-8 h-8 text-primary" />
           {state === "expanded" && (
-            <h1 className="text-xl font-bold font-headline">AttendEase</h1>
+            <h1 className="text-xl font-bold font-headline">PresenSys</h1>
           )}
         </Link>
       </SidebarHeader>
@@ -107,14 +107,9 @@ const AppSidebar = () => {
         </SidebarMenu>
       </SidebarContent>
       <SidebarFooter>
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton tooltip={{ children: "Settings" }}>
-              <Settings />
-              <span>Settings</span>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
+        <div className="flex items-center justify-center p-2">
+            <ThemeToggle />
+        </div>
       </SidebarFooter>
     </Sidebar>
   );
