@@ -16,11 +16,11 @@ import {
   Users,
   Book,
   ClipboardCheck,
-  Settings,
   LayoutDashboard,
   Archive,
 } from "lucide-react";
 import { useSidebar } from "../ui/sidebar";
+import { ThemeToggle } from "./theme-toggle";
 
 const AppSidebar = () => {
   const pathname = usePathname();
@@ -107,14 +107,9 @@ const AppSidebar = () => {
         </SidebarMenu>
       </SidebarContent>
       <SidebarFooter>
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton tooltip={{ children: "Settings" }}>
-              <Settings />
-              <span>Settings</span>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
+        <div className="flex items-center justify-center p-2">
+            <ThemeToggle />
+        </div>
       </SidebarFooter>
     </Sidebar>
   );
