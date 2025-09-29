@@ -206,6 +206,27 @@ export const enrollStudentsInCourse = async (courseId: string, studentIds: strin
 
 // --- Attendance Functions ---
 
+export const getOverallAttendanceRateForLastWeek = async (): Promise<number> => {
+    const db = await getDb();
+    const oneWeekAgo = new Date();
+    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+
+    const records = await db.collection('attendance').find({
+        timestamp: { $gte: oneWeekAgo.toISOString() }
+    }).toArray();
+
+    const presentCount = records.filter(r => r.status === 'present').length;
+    // We only consider present and absent for the rate calculation, excluding excused.
+    const totalCount = records.filter(r => r.status === 'present' || r.status === 'absent').length;
+
+    if (totalCount === 0) {
+        return 0;
+    }
+
+    return (presentCount / totalCount) * 100;
+};
+
+
 export const getAttendanceByCourse = async (courseId: string): Promise<AttendanceRecord[]> => {
   const db = await getDb();
   const records = await db.collection("attendance").find({ courseId }).toArray();
