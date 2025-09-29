@@ -18,7 +18,7 @@ export default async function DashboardPage() {
     <div className="flex flex-col h-full">
       <PageHeader
         title="Dashboard"
-        description="Welcome to AttendEase. Here's a quick overview."
+        description="Welcome to PresenSys. Here's a quick overview."
       />
       <div className="p-6 sm:p-8 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         <Card>

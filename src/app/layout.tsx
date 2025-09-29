@@ -6,7 +6,7 @@ import { ThemeProvider } from "@/components/layout/theme-provider";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "AttendEase",
+  title: "PresenSys",
   description:
     "An attendance app for attendance record management in university departments",
 };

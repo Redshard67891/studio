@@ -38,7 +38,7 @@ const AppSidebar = () => {
         <Link href="/" className="flex items-center gap-2.5">
           <GraduationCap className="w-8 h-8 text-primary" />
           {state === "expanded" && (
-            <h1 className="text-xl font-bold font-headline">AttendEase</h1>
+            <h1 className="text-xl font-bold font-headline">PresenSys</h1>
           )}
         </Link>
       </SidebarHeader>
