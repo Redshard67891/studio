@@ -40,7 +40,7 @@ export default async function CourseRecordsPage({
         }
       />
       <div className="flex-1 p-6 sm:p-8">
-        <SessionsClientPage courseId={course.id} initialSessions={sessions} />
+        <SessionsClientPage course={course} initialSessions={sessions} />
       </div>
     </div>
   );
